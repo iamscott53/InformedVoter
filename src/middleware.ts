@@ -14,7 +14,7 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  const cronSecret = process.env.CRON_SECRET;
+  const cronSecret = process.env.CRON_SECRET?.trim();
   if (!cronSecret) {
     return NextResponse.json(
       { error: "Server misconfiguration: CRON_SECRET is not set" },
