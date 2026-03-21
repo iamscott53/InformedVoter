@@ -58,6 +58,8 @@ AGENTS.md
 .bolt/
 .v0/
 .tabnine/
+.claude
+*.claude
 
 # Secrets & credentials
 *.key
