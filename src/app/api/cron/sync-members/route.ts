@@ -296,7 +296,9 @@ async function upsertMember(
 
   const party = normalizeParty(member.party ?? member.partyName);
   const photoUrl = member.depiction?.imageUrl ?? null;
-  const websiteUrl = member.url ?? null; // Congress.gov profile URL (not official site)
+  // Fetch the real official website from the member detail endpoint
+  const officialWebsite = await fetchMemberWebsite(member.bioguideId);
+  const websiteUrl = officialWebsite ?? null;
 
   // Build a canonical display name (prefer invertedOrderName for consistency)
   const name =
