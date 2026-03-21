@@ -8,7 +8,12 @@
       "Bash(npm install:*)",
       "Bash(cp ../.env .)",
       "Bash(cp ../.env.example .)",
-      "Bash(cp ../.gitignore .)"
+      "Bash(cp ../.gitignore .)",
+      "Bash(ls /c/Users/iamsc/OneDrive/Documents/git/InformedVoter/informed-voter/src/app/state/[stateAbbr]/)",
+      "Bash(ls /c/Users/iamsc/OneDrive/Documents/git/InformedVoter/informed-voter/src/app/state/[stateAbbr]/bills/)",
+      "Bash(ls /c/Users/iamsc/OneDrive/Documents/git/InformedVoter/informed-voter/src/app/state/[stateAbbr]/bills/[billId]/)",
+      "Bash(ls /c/Users/iamsc/OneDrive/Documents/git/InformedVoter/informed-voter/src/app/candidate/[candidateId]/)",
+      "Bash(npx tsc:*)"
     ]
   }
 }
