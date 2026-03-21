@@ -8,7 +8,7 @@ import { Landmark, ExternalLink } from "lucide-react";
 const DATA_SOURCES = [
   { label: "Congress.gov",                    href: "https://congress.gov" },
   { label: "OpenFEC",                         href: "https://api.open.fec.gov" },
-  { label: "Open States",                     href: "https://openstates.org" },
+  { label: "LegiScan",                         href: "https://legiscan.com" },
   { label: "Google Civic Information API",    href: "https://developers.google.com/civic-information" },
 ] as const;
 

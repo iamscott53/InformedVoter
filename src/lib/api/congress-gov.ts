@@ -7,18 +7,44 @@ const BASE_URL = "https://api.congress.gov/v3";
 const API_KEY = process.env.CONGRESS_GOV_API_KEY ?? "";
 
 // ─────────────────────────────────────────────
-// Response shape stubs
-// (Expand these as real parsing is added)
+// Response shapes
 // ─────────────────────────────────────────────
 
+export interface CongressMemberTerm {
+  chamber: string;           // "Senate" | "House of Representatives"
+  congress: number;
+  startYear?: number;
+  endYear?: number;
+  district?: number | null;
+  memberType?: string;
+  stateCode?: string;
+  stateName?: string;
+}
+
+export interface CongressMemberDepiction {
+  imageUrl?: string;
+  attribution?: string;
+}
+
+/** Shape of each entry in the GET /member list response */
 export interface CongressMember {
   bioguideId: string;
   name: string;
-  party: string;
+  directOrderName?: string;
+  invertedOrderName?: string;
+  honorificName?: string;
+  party?: string;
+  partyName?: string;
+  /** Two-letter state abbreviation */
   state: string;
-  district?: string | null;
-  chamber: string;
-  terms?: unknown;
+  district?: number | null;
+  terms?: {
+    item?: CongressMemberTerm[];
+  } | CongressMemberTerm[];
+  depiction?: CongressMemberDepiction;
+  /** URL to the member's Congress.gov profile page */
+  url?: string;
+  updateDate?: string;
 }
 
 export interface CongressBill {
@@ -44,9 +70,20 @@ export interface CongressBillDetails extends CongressBill {
 
 export interface CongressMemberDetails extends CongressMember {
   birthYear?: string;
-  leadership?: unknown;
+  leadership?: Array<{ congress: number; type: string }>;
   officialWebsiteUrl?: string;
-  depiction?: { imageUrl: string };
+  addressInformation?: {
+    officeAddress?: string;
+    city?: string;
+    district?: string;
+    zipCode?: number;
+    phoneNumber?: string;
+  };
+  partyHistory?: Array<{
+    partyName: string;
+    partyAbbreviation: string;
+    startYear: number;
+  }>;
 }
 
 // ─────────────────────────────────────────────

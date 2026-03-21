@@ -52,8 +52,8 @@ const DATA_SOURCES = [
     bg: "bg-amber-50",
   },
   {
-    name: "OpenStates",
-    description: "State legislative data including state bills, legislator info, and state voting records.",
+    name: "LegiScan",
+    description: "State and federal bill text, roll call votes, and legislative tracking across all 50 states.",
     icon: Scale,
     color: "text-rose-600",
     bg: "bg-rose-50",

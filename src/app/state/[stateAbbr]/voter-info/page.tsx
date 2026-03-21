@@ -7,117 +7,16 @@ import {
   Mail,
   Bell,
   Calendar,
+  Clock,
   ShieldCheck,
   AlertTriangle,
-  Info,
   CheckCircle2,
   Phone,
   ExternalLink,
 } from "lucide-react";
 import AnimatedSection from "@/components/features/AnimatedSection";
 import BallotAddressInput from "@/components/features/BallotAddressInput";
-
-// ─────────────────────────────────────────────
-// Mock data
-// ─────────────────────────────────────────────
-
-const ACTION_CARDS = [
-  {
-    icon: ClipboardCheck,
-    title: "Register to Vote",
-    description: "Register online through the state's official portal. Takes about 5 minutes.",
-    cta: "Register Now",
-    href: "https://registertovote.ca.gov",
-    turboVoteEmbed: false,
-    color: "text-blue-600",
-    bg: "bg-blue-50",
-    border: "border-blue-100",
-  },
-  {
-    icon: Search,
-    title: "Check Your Registration",
-    description: "Verify your current registration status, party affiliation, and polling place.",
-    cta: "Check Status",
-    href: "https://voterstatus.sos.ca.gov",
-    turboVoteEmbed: false,
-    color: "text-emerald-600",
-    bg: "bg-emerald-50",
-    border: "border-emerald-100",
-  },
-  {
-    icon: Mail,
-    title: "Request Absentee Ballot",
-    description: "Request a vote-by-mail ballot to be sent to your home address.",
-    cta: "Request Ballot",
-    href: "https://california.ballottrax.net",
-    turboVoteEmbed: false,
-    color: "text-purple-600",
-    bg: "bg-purple-50",
-    border: "border-purple-100",
-  },
-  {
-    icon: Bell,
-    title: "Get Election Reminders",
-    description: "Sign up to receive text and email reminders about upcoming deadlines and elections.",
-    cta: "Set Reminders",
-    href: "https://turbovote.org",
-    turboVoteEmbed: true,
-    color: "text-amber-600",
-    bg: "bg-amber-50",
-    border: "border-amber-100",
-  },
-];
-
-const VOTING_RULES = [
-  {
-    title: "Registration Deadline",
-    value: "15 days before election",
-    note: "Online registration closes 15 days prior; same-day conditional registration available at polls",
-    icon: Calendar,
-    color: "text-red-600",
-    bg: "bg-red-50",
-  },
-  {
-    title: "Voter ID Requirements",
-    value: "First-time voters only",
-    note: "CA does not require photo ID at the polls. First-time voters who registered by mail may need to show ID.",
-    icon: ShieldCheck,
-    color: "text-blue-600",
-    bg: "bg-blue-50",
-  },
-  {
-    title: "Early Voting",
-    value: "Up to 29 days before election",
-    note: "Vote-by-mail ballots are automatically sent to all registered voters in California.",
-    icon: ClipboardCheck,
-    color: "text-emerald-600",
-    bg: "bg-emerald-50",
-  },
-  {
-    title: "Absentee / Vote-by-Mail",
-    value: "Available to all voters",
-    note: "All registered voters automatically receive a mail ballot. Drop it off or mail it back by Election Day.",
-    icon: Mail,
-    color: "text-purple-600",
-    bg: "bg-purple-50",
-  },
-  {
-    title: "Felony Disenfranchisement",
-    value: "Rights restored after parole",
-    note: "Californians with felony convictions can register and vote once they are no longer incarcerated or on parole.",
-    icon: Info,
-    color: "text-amber-600",
-    bg: "bg-amber-50",
-  },
-  {
-    title: "Provisional Ballots",
-    value: "Available at any polling place",
-    note: "If your name isn't on the voter roll, you can cast a provisional ballot. It will be counted once your eligibility is confirmed.",
-    icon: CheckCircle2,
-    color: "text-teal-600",
-    bg: "bg-teal-50",
-  },
-];
+import { prisma } from "@/lib/db";
 
 const VOTER_RIGHTS = [
   {
@@ -181,16 +80,6 @@ const MEDIA_LITERACY_TIPS = [
   },
 ];
 
-const KEY_DATES = [
-  { label: "Special Election", date: "Apr 15, 2026", type: "election" },
-  { label: "Primary Registration Deadline", date: "May 20, 2026", type: "deadline" },
-  { label: "Primary Early Voting Starts", date: "May 24, 2026", type: "voting" },
-  { label: "Primary Election Day", date: "Jun 3, 2026", type: "election" },
-  { label: "General Registration Deadline", date: "Oct 19, 2026", type: "deadline" },
-  { label: "General Early Voting Starts", date: "Oct 5, 2026", type: "voting" },
-  { label: "General Election Day", date: "Nov 3, 2026", type: "election" },
-];
-
 export async function generateMetadata({
   params,
 }: {
@@ -212,11 +101,145 @@ export default async function VoterInfoPage({
   const { stateAbbr } = await params;
   const abbr = stateAbbr.toUpperCase();
 
-  const typeColors = {
-    election: "bg-emerald-600",
-    deadline: "bg-red-500",
-    voting: "bg-blue-500",
-  };
+  const state = await prisma.state.findUnique({ where: { abbreviation: abbr } });
+  const voterInfo = state
+    ? await prisma.voterInfo.findUnique({
+        where: { stateId: state.id },
+        include: {
+          deadlines: {
+            include: { election: { select: { name: true, date: true, electionType: true } } },
+            orderBy: { deadlineDate: "asc" },
+          },
+        },
+      })
+    : null;
+
+  // Build action cards from real data when available
+  const actionCards = [
+    {
+      icon: ClipboardCheck,
+      title: "Register to Vote",
+      description: voterInfo?.onlineRegistration
+        ? "Register online through the state's official portal."
+        : "Register to vote through your state's official process.",
+      cta: "Register Now",
+      href: voterInfo?.registrationUrl ?? "https://vote.gov/register",
+      turboVoteEmbed: false,
+      color: "text-blue-600",
+      bg: "bg-blue-50",
+      border: "border-blue-100",
+    },
+    {
+      icon: Search,
+      title: "Check Your Registration",
+      description: "Verify your current registration status, party affiliation, and polling place.",
+      cta: "Check Status",
+      href: voterInfo?.stateElectionWebsite ?? "https://vote.gov",
+      turboVoteEmbed: false,
+      color: "text-emerald-600",
+      bg: "bg-emerald-50",
+      border: "border-emerald-100",
+    },
+    {
+      icon: Mail,
+      title: "Request Absentee Ballot",
+      description: "Request a vote-by-mail ballot to be sent to your home address.",
+      cta: "Request Ballot",
+      href: voterInfo?.absenteeUrl ?? voterInfo?.stateElectionWebsite ?? "https://vote.gov",
+      turboVoteEmbed: false,
+      color: "text-purple-600",
+      bg: "bg-purple-50",
+      border: "border-purple-100",
+    },
+    {
+      icon: Bell,
+      title: "Get Election Reminders",
+      description: "Sign up to receive text and email reminders about upcoming deadlines.",
+      cta: "Set Reminders",
+      href: "https://turbovote.org",
+      turboVoteEmbed: true,
+      color: "text-amber-600",
+      bg: "bg-amber-50",
+      border: "border-amber-100",
+    },
+  ];
+
+  // Build voting rules from real DB data
+  const votingRules = voterInfo
+    ? [
+        {
+          title: "Registration Deadline",
+          value: voterInfo.registrationDeadline
+            ? voterInfo.registrationDeadline.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+            : "See state website",
+          note: voterInfo.sameDayRegistration
+            ? "Same-day registration is available at the polls."
+            : "Check the state election website for the exact deadline.",
+          icon: Calendar,
+          color: "text-red-600",
+          bg: "bg-red-50",
+        },
+        {
+          title: "Voter ID Requirements",
+          value: voterInfo.voterIdRequirements ?? "See state website",
+          note: voterInfo.additionalNotes ?? "Check your state's official election website for full requirements.",
+          icon: ShieldCheck,
+          color: "text-blue-600",
+          bg: "bg-blue-50",
+        },
+        {
+          title: "Early Voting",
+          value: voterInfo.earlyVotingStart
+            ? `Starts ${voterInfo.earlyVotingStart.toLocaleDateString("en-US", { month: "long", day: "numeric" })}`
+            : "See state website",
+          note: voterInfo.earlyVotingEnd
+            ? `Early voting ends ${voterInfo.earlyVotingEnd.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.`
+            : "Check your state election website for early voting locations.",
+          icon: ClipboardCheck,
+          color: "text-emerald-600",
+          bg: "bg-emerald-50",
+        },
+        {
+          title: "Absentee / Vote-by-Mail",
+          value: voterInfo.absenteeDeadline
+            ? `Deadline: ${voterInfo.absenteeDeadline.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
+            : "Available — check state website",
+          note: "Request your absentee ballot early to ensure it arrives and is returned on time.",
+          icon: Mail,
+          color: "text-purple-600",
+          bg: "bg-purple-50",
+        },
+        {
+          title: "Polling Hours",
+          value:
+            voterInfo.pollingHoursStart && voterInfo.pollingHoursEnd
+              ? `${voterInfo.pollingHoursStart} – ${voterInfo.pollingHoursEnd}`
+              : "See state website",
+          note: "Hours may vary by county. Check your local election office for exact times.",
+          icon: Clock,
+          color: "text-teal-600",
+          bg: "bg-teal-50",
+        },
+      ]
+    : [];
+
+  // Build key dates from deadline records
+  const keyDates = voterInfo?.deadlines
+    ? voterInfo.deadlines.map((d) => ({
+        label: `${d.election.name} — ${d.deadlineType.replace(/_/g, " ")}`,
+        date: d.deadlineDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        rawDate: d.deadlineDate,
+        color:
+          d.deadlineType === "ELECTION_DAY"
+            ? "bg-emerald-600"
+            : d.deadlineType.includes("REGISTRATION")
+            ? "bg-red-500"
+            : "bg-blue-500",
+      }))
+    : [];
+
+  const hotline = voterInfo?.electionProtectionHotline ?? "866-OUR-VOTE";
+  const hotlineHref = `tel:1${hotline.replace(/-/g, "")}`;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -246,14 +269,14 @@ export default async function VoterInfoPage({
               Quick links to official voter registration and ballot tools.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {ACTION_CARDS.map((card) => {
+              {actionCards.map((card) => {
                 const Icon = card.icon;
                 return (
                   <div
                     key={card.title}
                     className={`flex flex-col gap-4 p-5 rounded-2xl border ${card.border} ${card.bg}`}
                   >
-                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center bg-white shadow-sm`}>
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-white shadow-sm">
                       <Icon size={20} className={card.color} />
                     </div>
                     <div className="flex-1">
@@ -281,33 +304,35 @@ export default async function VoterInfoPage({
         </AnimatedSection>
 
         {/* ── Section B: State Voting Rules ── */}
-        <AnimatedSection delay={0.05}>
-          <section>
-            <h2 className="text-xl font-bold text-[#1B2A4A] mb-2">{abbr} Voting Rules</h2>
-            <p className="text-sm text-gray-500 mb-6">
-              State-specific rules for registration, ID requirements, and voting options.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {VOTING_RULES.map((rule) => {
-                const Icon = rule.icon;
-                return (
-                  <div key={rule.title} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-                    <div className="flex items-start gap-3">
-                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${rule.bg} shrink-0`}>
-                        <Icon size={16} className={rule.color} />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-[#1B2A4A] text-sm mb-0.5">{rule.title}</h3>
-                        <p className={`text-sm font-bold ${rule.color} mb-1.5`}>{rule.value}</p>
-                        <p className="text-xs text-gray-500 leading-relaxed">{rule.note}</p>
+        {votingRules.length > 0 && (
+          <AnimatedSection delay={0.05}>
+            <section>
+              <h2 className="text-xl font-bold text-[#1B2A4A] mb-2">{abbr} Voting Rules</h2>
+              <p className="text-sm text-gray-500 mb-6">
+                State-specific rules for registration, ID requirements, and voting options.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {votingRules.map((rule) => {
+                  const Icon = rule.icon;
+                  return (
+                    <div key={rule.title} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+                      <div className="flex items-start gap-3">
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${rule.bg} shrink-0`}>
+                          <Icon size={16} className={rule.color} />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-[#1B2A4A] text-sm mb-0.5">{rule.title}</h3>
+                          <p className={`text-sm font-bold ${rule.color} mb-1.5`}>{rule.value}</p>
+                          <p className="text-xs text-gray-500 leading-relaxed">{rule.note}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        </AnimatedSection>
+                  );
+                })}
+              </div>
+            </section>
+          </AnimatedSection>
+        )}
 
         {/* ── Section C: Know Your Rights ── */}
         <AnimatedSection delay={0.1}>
@@ -342,8 +367,8 @@ export default async function VoterInfoPage({
                     <p className="text-sm font-bold text-red-800">Experiencing problems at the polls?</p>
                     <p className="text-sm text-red-700 mt-0.5">
                       Call the nonpartisan Election Protection hotline:{" "}
-                      <a href="tel:18664687683" className="font-bold underline hover:no-underline">
-                        1-866-OUR-VOTE (687-8683)
+                      <a href={hotlineHref} className="font-bold underline hover:no-underline">
+                        1-{hotline}
                       </a>
                     </p>
                   </div>
@@ -365,27 +390,29 @@ export default async function VoterInfoPage({
         </AnimatedSection>
 
         {/* ── Section E: Key Dates ── */}
-        <AnimatedSection delay={0.2}>
-          <section>
-            <h2 className="text-xl font-bold text-[#1B2A4A] mb-2">Key Dates — 2026</h2>
-            <p className="text-sm text-gray-500 mb-6">
-              Important electoral deadlines and election days for {abbr} in 2026.
-            </p>
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-              <div className="space-y-3">
-                {KEY_DATES.map((item, i) => (
-                  <div key={i} className="flex items-center gap-4 py-2 border-b border-gray-50 last:border-0">
-                    <span className={`text-xs font-bold text-white px-3 py-1 rounded-md shrink-0 min-w-[90px] text-center ${typeColors[item.type as keyof typeof typeColors]}`}>
-                      {item.date.split(",")[0]}
-                    </span>
-                    <span className="text-sm text-gray-700">{item.label}</span>
-                    <span className="ml-auto text-xs text-gray-400 shrink-0 hidden sm:block">{item.date}</span>
-                  </div>
-                ))}
+        {keyDates.length > 0 && (
+          <AnimatedSection delay={0.2}>
+            <section>
+              <h2 className="text-xl font-bold text-[#1B2A4A] mb-2">Key Dates</h2>
+              <p className="text-sm text-gray-500 mb-6">
+                Important electoral deadlines and election days for {abbr}.
+              </p>
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                <div className="space-y-3">
+                  {keyDates.map((item, i) => (
+                    <div key={i} className="flex items-center gap-4 py-2 border-b border-gray-50 last:border-0">
+                      <span className={`text-xs font-bold text-white px-3 py-1 rounded-md shrink-0 min-w-[90px] text-center ${item.color}`}>
+                        {item.date.split(",")[0]}
+                      </span>
+                      <span className="text-sm text-gray-700">{item.label}</span>
+                      <span className="ml-auto text-xs text-gray-400 shrink-0 hidden sm:block">{item.date}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          </section>
-        </AnimatedSection>
+            </section>
+          </AnimatedSection>
+        )}
 
         {/* ── Section F: Media Literacy ── */}
         <AnimatedSection delay={0.25}>

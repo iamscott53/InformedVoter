@@ -30,8 +30,8 @@ Nonpartisan civic information platform for US voters. Research your representati
 | Source | Data Provided |
 |--------|--------------|
 | [Congress.gov API](https://api.congress.gov/) | Bills, members, voting records |
-| [Open States / Plural API](https://openstates.org/) | State legislators, state bills |
 | [LegiScan API](https://legiscan.com/legiscan) | State + federal bills, full text, roll calls |
+| [Open States People](https://github.com/openstates/people) | State legislator data (public domain) |
 | [OpenFEC API](https://api.open.fec.gov/) | Campaign finance, donors, expenditures |
 | [Google Civic Information API](https://developers.google.com/civic-information) | Elections, polling places, ballot info |
 | [VoteView (UCLA)](https://voteview.com/) | Congressional voting records since 1789 |
@@ -73,8 +73,7 @@ Optional variables for full functionality:
 |----------|-------------|
 | `CONGRESS_GOV_API_KEY` | Congress.gov API access |
 | `FEC_API_KEY` | OpenFEC campaign finance data |
-| `OPENSTATES_API_KEY` | State legislature data |
-| `LEGISCAN_API_KEY` | Bill text and roll calls |
+| `LEGISCAN_API_KEY` | State + federal bill text and roll calls |
 | `GOOGLE_CIVIC_API_KEY` | Elections and polling places |
 | `UPSTASH_REDIS_URL` | Redis caching |
 | `UPSTASH_REDIS_TOKEN` | Redis authentication |

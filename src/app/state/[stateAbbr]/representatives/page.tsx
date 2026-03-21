@@ -4,23 +4,8 @@ import { ChevronRight, User } from "lucide-react";
 import PartyBadge from "@/components/ui/PartyBadge";
 import AnimatedSection from "@/components/features/AnimatedSection";
 import DistrictFinder from "@/components/features/DistrictFinder";
-
-// ─────────────────────────────────────────────
-// Mock data
-// ─────────────────────────────────────────────
-
-const MOCK_REPS = [
-  { id: "rep-1",  name: "Maria Santos",    party: "D", district: 1,  region: "Northern Metro",   committees: ["Education", "Budget"],              billsSponsored: 18 },
-  { id: "rep-2",  name: "James Holbrook",  party: "R", district: 2,  region: "Eastern Valley",   committees: ["Agriculture", "Veterans Affairs"],  billsSponsored: 11 },
-  { id: "rep-3",  name: "Priya Kapoor",    party: "D", district: 3,  region: "Downtown Core",    committees: ["Judiciary", "Science"],             billsSponsored: 22 },
-  { id: "rep-4",  name: "Thomas Wren",     party: "R", district: 4,  region: "Suburban Heights", committees: ["Armed Services", "Commerce"],       billsSponsored: 9  },
-  { id: "rep-5",  name: "Aaliyah Bridges", party: "D", district: 5,  region: "Coastal District", committees: ["Natural Resources", "Foreign Affairs"], billsSponsored: 31 },
-  { id: "rep-6",  name: "Kevin Stanton",   party: "R", district: 6,  region: "Rural Plains",     committees: ["Transportation", "Agriculture"],   billsSponsored: 7  },
-  { id: "rep-7",  name: "Lin Mei Chen",    party: "D", district: 7,  region: "Tech Corridor",    committees: ["Science", "Small Business"],        billsSponsored: 25 },
-  { id: "rep-8",  name: "Robert Okafor",   party: "I", district: 8,  region: "Central Valley",   committees: ["Oversight", "Budget"],             billsSponsored: 14 },
-  { id: "rep-9",  name: "Susan Fischer",   party: "R", district: 9,  region: "Mountain West",    committees: ["Homeland Security", "Judiciary"],  billsSponsored: 16 },
-  { id: "rep-10", name: "Marcus Webb",     party: "D", district: 10, region: "Harbor District",  committees: ["Transportation", "Appropriations"],billsSponsored: 20 },
-];
+import { prisma } from "@/lib/db";
+import { OfficeType } from "@/types";
 
 export async function generateMetadata({
   params,
@@ -43,6 +28,22 @@ export default async function RepresentativesPage({
   const { stateAbbr } = await params;
   const abbr = stateAbbr.toUpperCase();
 
+  const state = await prisma.state.findUnique({ where: { abbreviation: abbr } });
+
+  const reps = state
+    ? await prisma.candidate.findMany({
+        where: { stateId: state.id, officeType: OfficeType.US_REPRESENTATIVE },
+        include: {
+          sponsoredBills: { select: { id: true } },
+        },
+        orderBy: [{ district: "asc" }, { name: "asc" }],
+      })
+    : [];
+
+  const demCount = reps.filter((r) => r.party === "D").length;
+  const repCount = reps.filter((r) => r.party === "R").length;
+  const indCount = reps.filter((r) => r.party !== "D" && r.party !== "R").length;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -57,7 +58,9 @@ export default async function RepresentativesPage({
           </nav>
           <h1 className="text-3xl sm:text-4xl font-bold">U.S. House Representatives</h1>
           <p className="text-white/60 mt-2">
-            {abbr} has {MOCK_REPS.length} congressional districts in the House of Representatives.
+            {reps.length > 0
+              ? `${abbr} has ${reps.length} representative${reps.length !== 1 ? "s" : ""} in the House of Representatives.`
+              : `House representative records for ${abbr} have not been added yet.`}
           </p>
         </div>
       </div>
@@ -68,77 +71,90 @@ export default async function RepresentativesPage({
           <DistrictFinder />
         </div>
 
-        {/* Party breakdown */}
-        <div className="mb-8 flex items-center gap-4 flex-wrap">
-          <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Party breakdown:</p>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-blue-500 inline-block" />
-            <span className="text-sm text-gray-700 font-medium">
-              Democrat: {MOCK_REPS.filter(r => r.party === "D").length}
-            </span>
+        {reps.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-12 text-center">
+            <User size={48} className="text-gray-300 mx-auto mb-4" />
+            <h2 className="text-lg font-bold text-[#1B2A4A] mb-2">No Representative Data Yet</h2>
+            <p className="text-sm text-gray-500">
+              Representative records for {abbr} have not been added to the database yet.
+            </p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-red-500 inline-block" />
-            <span className="text-sm text-gray-700 font-medium">
-              Republican: {MOCK_REPS.filter(r => r.party === "R").length}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-purple-500 inline-block" />
-            <span className="text-sm text-gray-700 font-medium">
-              Independent: {MOCK_REPS.filter(r => r.party === "I").length}
-            </span>
-          </div>
-        </div>
-
-        {/* Representatives grid */}
-        <AnimatedSection>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {MOCK_REPS.map((rep) => (
-              <Link
-                key={rep.id}
-                href={`/candidate/${rep.id}`}
-                className="group bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden"
-              >
-                {/* Photo area */}
-                <div className="relative bg-gradient-to-br from-gray-100 to-gray-200 h-32 flex items-center justify-center">
-                  <User size={48} className="text-gray-300" />
-                  <div className="absolute top-3 left-3">
-                    <span className="text-xs font-bold bg-white/90 text-[#1B2A4A] px-2 py-1 rounded-full shadow-sm">
-                      District {rep.district}
-                    </span>
-                  </div>
-                  <div className="absolute top-3 right-3">
-                    <PartyBadge party={rep.party} size="xs" />
-                  </div>
+        ) : (
+          <>
+            {/* Party breakdown */}
+            <div className="mb-8 flex items-center gap-4 flex-wrap">
+              <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Party breakdown:</p>
+              {demCount > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-blue-500 inline-block" />
+                  <span className="text-sm text-gray-700 font-medium">Democrat: {demCount}</span>
                 </div>
-
-                {/* Info */}
-                <div className="p-4">
-                  <h3 className="font-bold text-[#1B2A4A] group-hover:text-blue-700 transition-colors">
-                    {rep.name}
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-0.5 mb-3">{rep.region}</p>
-
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {rep.committees.map((c) => (
-                      <span key={c} className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                        {c}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-400">{rep.billsSponsored} bills sponsored</span>
-                    <span className="text-blue-600 font-medium group-hover:underline">
-                      Profile →
-                    </span>
-                  </div>
+              )}
+              {repCount > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-red-500 inline-block" />
+                  <span className="text-sm text-gray-700 font-medium">Republican: {repCount}</span>
                 </div>
-              </Link>
-            ))}
-          </div>
-        </AnimatedSection>
+              )}
+              {indCount > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-purple-500 inline-block" />
+                  <span className="text-sm text-gray-700 font-medium">Other: {indCount}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Representatives grid */}
+            <AnimatedSection>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                {reps.map((rep) => (
+                  <Link
+                    key={rep.id}
+                    href={`/candidate/${rep.id}`}
+                    className="group bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden"
+                  >
+                    {/* Photo area */}
+                    <div className="relative bg-gradient-to-br from-gray-100 to-gray-200 h-32 flex items-center justify-center overflow-hidden">
+                      {rep.photoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={rep.photoUrl} alt={rep.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <User size={48} className="text-gray-300" />
+                      )}
+                      {rep.district && (
+                        <div className="absolute top-3 left-3">
+                          <span className="text-xs font-bold bg-white/90 text-[#1B2A4A] px-2 py-1 rounded-full shadow-sm">
+                            District {rep.district}
+                          </span>
+                        </div>
+                      )}
+                      <div className="absolute top-3 right-3">
+                        <PartyBadge party={rep.party} size="xs" />
+                      </div>
+                    </div>
+
+                    {/* Info */}
+                    <div className="p-4">
+                      <h3 className="font-bold text-[#1B2A4A] group-hover:text-blue-700 transition-colors">
+                        {rep.name}
+                      </h3>
+                      {rep.isIncumbent && (
+                        <p className="text-xs text-gray-500 mt-0.5 mb-3">Incumbent</p>
+                      )}
+
+                      <div className="flex items-center justify-between text-xs mt-3">
+                        <span className="text-gray-400">{rep.sponsoredBills.length} bills sponsored</span>
+                        <span className="text-blue-600 font-medium group-hover:underline">
+                          Profile →
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </AnimatedSection>
+          </>
+        )}
       </div>
     </div>
   );
