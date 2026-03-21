@@ -1,21 +1,72 @@
 "use client";
 
 import { useState } from "react";
-import { Search, MapPin, Loader2 } from "lucide-react";
+import { Search, MapPin, Loader2, AlertCircle, Info } from "lucide-react";
+import Link from "next/link";
+
+// ─────────────────────────────────────────────
+// Types matching /api/district-lookup response
+// ─────────────────────────────────────────────
+
+interface DistrictResult {
+  office: string;
+  district: string | null;
+  representative: string;
+  party: string | null;
+}
+
+interface DistrictLookupResponse {
+  districts: DistrictResult[];
+  normalizedAddress?: {
+    line1?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+  } | null;
+  notice?: string;
+  error?: string;
+}
 
 export default function DistrictFinder() {
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<null | { district: number; rep: string }>(null);
+  const [results, setResults] = useState<DistrictResult[] | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!address.trim()) return;
     setLoading(true);
-    setTimeout(() => {
-      setResult({ district: 7, rep: "Lin Mei Chen" });
+    setError(null);
+    setNotice(null);
+    setResults(null);
+
+    try {
+      const res = await fetch(
+        "/api/district-lookup?address=" + encodeURIComponent(address.trim())
+      );
+      const json: DistrictLookupResponse = await res.json();
+
+      if (!res.ok) {
+        setError(json.error ?? "Failed to look up your district. Please try again.");
+        return;
+      }
+
+      if (json.notice) {
+        setNotice(json.notice);
+      }
+
+      if (json.districts && json.districts.length > 0) {
+        setResults(json.districts);
+      } else if (!json.notice) {
+        setNotice("No congressional district information found for this address. Try entering a full street address with city, state, and ZIP code.");
+      }
+    } catch {
+      setError("Unable to reach the server. Please check your connection and try again.");
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   }
 
   return (
@@ -47,7 +98,7 @@ export default function DistrictFinder() {
           {loading ? (
             <>
               <Loader2 size={14} className="animate-spin" />
-              Looking up…
+              Looking up...
             </>
           ) : (
             "Find My District"
@@ -55,12 +106,58 @@ export default function DistrictFinder() {
         </button>
       </form>
 
-      {result && (
-        <div className="mt-4 flex items-center gap-3 p-3.5 bg-green-50 border border-green-200 rounded-lg text-sm">
-          <MapPin size={16} className="text-green-600 shrink-0" />
-          <p className="text-green-800">
-            You are in <strong>District {result.district}</strong>, represented by{" "}
-            <strong>{result.rep}</strong>.
+      {/* Error */}
+      {error && !loading && (
+        <div className="mt-4 flex items-start gap-3 p-3.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+          <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
+          <p>{error}</p>
+        </div>
+      )}
+
+      {/* Notice (not configured or no results) */}
+      {notice && !results && !loading && !error && (
+        <div className="mt-4 flex items-start gap-3 p-3.5 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+          <Info size={16} className="text-amber-500 shrink-0 mt-0.5" />
+          <div>
+            <p>{notice}</p>
+            <p className="mt-2 text-xs">
+              You can also browse representatives on your{" "}
+              <Link href="/state" className="text-[#1B2A4A] underline hover:no-underline font-medium">
+                state page
+              </Link>
+              .
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Results */}
+      {results && results.length > 0 && !loading && (
+        <div className="mt-4 space-y-2">
+          {results.map((r, idx) => (
+            <div
+              key={idx}
+              className="flex items-center gap-3 p-3.5 bg-green-50 border border-green-200 rounded-lg text-sm"
+            >
+              <MapPin size={16} className="text-green-600 shrink-0" />
+              <p className="text-green-800">
+                {r.district ? (
+                  <>
+                    You are in <strong>Congressional District {r.district}</strong>, represented by{" "}
+                    <strong>{r.representative}</strong>
+                    {r.party ? ` (${r.party})` : ""}.
+                  </>
+                ) : (
+                  <>
+                    Your representative is <strong>{r.representative}</strong>
+                    {r.party ? ` (${r.party})` : ""}.
+                  </>
+                )}
+              </p>
+            </div>
+          ))}
+          <p className="text-xs text-gray-400 pt-1">
+            Data provided by the Google Civic Information API.
           </p>
         </div>
       )}

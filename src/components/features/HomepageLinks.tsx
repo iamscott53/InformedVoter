@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight, ShieldCheck, BarChart3, AlertCircle, Newspaper } from "lucide-react";
 import { useUserState } from "@/hooks/useUserState";
+import AnimatedCards from "@/components/features/AnimatedCards";
 
 const DEFAULT_STATE = "CA";
 
@@ -78,13 +79,6 @@ export function QuickActions() {
     href: `/state/${state}${a.path}`,
   }));
 
-  return <DynamicAnimatedCards items={items} />;
-}
-
-// Inline the card rendering to avoid circular dependency with AnimatedCards
-function DynamicAnimatedCards({ items }: { items: (QuickAction & { href: string })[] }) {
-  // Re-use the same import
-  const AnimatedCards = require("@/components/features/AnimatedCards").default;
   return <AnimatedCards items={items} />;
 }
 

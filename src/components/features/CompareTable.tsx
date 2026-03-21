@@ -1,98 +1,140 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Check, X, Minus, ChevronDown, Plus, User } from "lucide-react";
+import { Check, Minus, ChevronDown, User, Loader2, AlertCircle, Info } from "lucide-react";
 import PartyBadge from "@/components/ui/PartyBadge";
 import Link from "next/link";
 
 // ─────────────────────────────────────────────
-// Mock data
+// Types
 // ─────────────────────────────────────────────
 
 interface CandidatePolicy {
-  stance: "supports" | "opposes" | "neutral" | "mixed";
+  id: number;
+  category: string;
   summary: string;
+  lastAnalyzedAt: string | null;
 }
 
-interface MockCandidate {
-  id: string;
+interface CandidateFromAPI {
+  id: number;
   name: string;
-  party: "D" | "R" | "I";
-  office: string;
-  state: string;
-  policies: Record<string, CandidatePolicy>;
+  party: string;
+  photoUrl: string | null;
+  biography: string | null;
+  websiteUrl: string | null;
+  officeType: string;
+  district: string | null;
+  isIncumbent: boolean;
+  stateId: number | null;
+  state: { id: number; name: string; abbreviation: string; fipsCode: string } | null;
+  policies: CandidatePolicy[];
 }
 
-const MOCK_CANDIDATES: MockCandidate[] = [
-  {
-    id: "sen-dianne-feinstein",
-    name: "Alex Rivera",
-    party: "D",
-    office: "U.S. Senator",
-    state: "CA",
-    policies: {
-      "Healthcare": { stance: "supports", summary: "Supports Medicare expansion and drug price negotiation." },
-      "Climate & Environment": { stance: "supports", summary: "Advocates for aggressive clean energy transition and net-zero by 2050." },
-      "Immigration": { stance: "supports", summary: "Supports pathway to citizenship and DACA protections." },
-      "Gun Policy": { stance: "supports", summary: "Supports universal background checks and assault weapons restrictions." },
-      "Economy & Taxes": { stance: "supports", summary: "Supports raising corporate tax rate to 28% and $15 minimum wage." },
-      "Criminal Justice": { stance: "mixed", summary: "Supports some reform; mixed record on police accountability measures." },
-      "Education": { stance: "supports", summary: "Supports universal pre-K, student loan reform, and increased K-12 funding." },
-      "Foreign Policy": { stance: "supports", summary: "Supports multilateral engagement and NATO commitments." },
-    },
-  },
-  {
-    id: "sen-kevin-mccarthy",
-    name: "Jordan Walsh",
-    party: "R",
-    office: "U.S. Senator",
-    state: "CA",
-    policies: {
-      "Healthcare": { stance: "opposes", summary: "Opposes government-run healthcare. Supports free-market alternatives and HSAs." },
-      "Climate & Environment": { stance: "mixed", summary: "Skeptical of regulations impacting energy jobs; supports some renewable tax credits." },
-      "Immigration": { stance: "opposes", summary: "Supports strict border enforcement and merit-based system." },
-      "Gun Policy": { stance: "opposes", summary: "Opposes most new gun restrictions. Supports Second Amendment rights." },
-      "Economy & Taxes": { stance: "supports", summary: "Supports lower corporate taxes, deregulation, and balanced budget." },
-      "Criminal Justice": { stance: "opposes", summary: "Opposes defunding police. Supports law and order approach." },
-      "Education": { stance: "opposes", summary: "Supports school choice and opposes federal student loan forgiveness." },
-      "Foreign Policy": { stance: "neutral", summary: "Supports strong military but skeptical of multilateral commitments and foreign aid." },
-    },
-  },
-];
+// ─────────────────────────────────────────────
+// Policy category display mapping (DB enum -> display label)
+// ─────────────────────────────────────────────
 
-const AVAILABLE_CANDIDATES = [
-  { id: "sen-dianne-feinstein", name: "Alex Rivera", party: "D", office: "U.S. Senator" },
-  { id: "sen-kevin-mccarthy", name: "Jordan Walsh", party: "R", office: "U.S. Senator" },
-  { id: "rep-1", name: "Maria Santos", party: "D", office: "U.S. Rep. CA-1" },
-  { id: "rep-2", name: "James Holbrook", party: "R", office: "U.S. Rep. CA-2" },
-];
+const POLICY_DISPLAY: Record<string, string> = {
+  ECONOMY: "Economy & Taxes",
+  HEALTHCARE: "Healthcare",
+  EDUCATION: "Education",
+  IMMIGRATION: "Immigration",
+  ENVIRONMENT: "Climate & Environment",
+  GUN_POLICY: "Gun Policy",
+  FOREIGN_POLICY: "Foreign Policy",
+  CRIMINAL_JUSTICE: "Criminal Justice",
+  HOUSING: "Housing",
+  OTHER: "Other Issues",
+};
 
-const POLICY_CATEGORIES = [
-  "Healthcare",
-  "Climate & Environment",
-  "Immigration",
-  "Gun Policy",
-  "Economy & Taxes",
-  "Criminal Justice",
-  "Education",
-  "Foreign Policy",
-];
+const POLICY_CATEGORIES = Object.keys(POLICY_DISPLAY);
+
+// ─────────────────────────────────────────────
+// Office type display mapping
+// ─────────────────────────────────────────────
+
+function formatOffice(officeType: string, district?: string | null): string {
+  const labels: Record<string, string> = {
+    PRESIDENT: "President",
+    US_SENATOR: "U.S. Senator",
+    US_REPRESENTATIVE: "U.S. Representative",
+    GOVERNOR: "Governor",
+    STATE_SENATOR: "State Senator",
+    STATE_REP: "State Representative",
+    OTHER: "Elected Official",
+  };
+  const base = labels[officeType] ?? officeType;
+  return district ? `${base} - Dist. ${district}` : base;
+}
+
+// ─────────────────────────────────────────────
+// Party code helper (DB stores "D", "R", etc.)
+// ─────────────────────────────────────────────
+
+function partyCode(party: string): string {
+  return party;
+}
+
+// ─────────────────────────────────────────────
+// Stance inference from policy summary text
+// (Since the DB stores free-text summaries, we don't have
+//  explicit supports/opposes. We just show the summary.)
+// ─────────────────────────────────────────────
 
 const STANCE_ICONS = {
-  supports: { icon: Check, color: "text-emerald-600", bg: "bg-emerald-50", label: "Supports" },
-  opposes: { icon: X, color: "text-red-600", bg: "bg-red-50", label: "Opposes" },
-  neutral: { icon: Minus, color: "text-gray-500", bg: "bg-gray-50", label: "Neutral" },
-  mixed: { icon: Minus, color: "text-amber-600", bg: "bg-amber-50", label: "Mixed" },
+  has_policy: { icon: Check, color: "text-emerald-600", bg: "bg-emerald-50", label: "Position Available" },
+  no_data: { icon: Minus, color: "text-gray-500", bg: "bg-gray-50", label: "No Data" },
 };
 
 export default function CompareTable() {
-  const [selectedIds, setSelectedIds] = useState<string[]>(["sen-dianne-feinstein", "sen-kevin-mccarthy"]);
+  const [candidates, setCandidates] = useState<CandidateFromAPI[]>([]);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [stateFilter, setStateFilter] = useState("");
 
-  const selectedCandidates = MOCK_CANDIDATES.filter((c) => selectedIds.includes(c.id));
+  // Fetch candidates
+  const fetchCandidates = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-  function toggleCandidate(id: string) {
+    try {
+      const params = new URLSearchParams();
+      if (stateFilter) params.set("stateAbbr", stateFilter.toUpperCase());
+
+      const res = await fetch("/api/candidates" + (params.toString() ? `?${params}` : ""));
+      const json = await res.json();
+
+      if (!res.ok) {
+        setError(json.error ?? "Failed to load candidates.");
+        setCandidates([]);
+        return;
+      }
+
+      setCandidates(json.candidates ?? []);
+
+      // Auto-select first 2 candidates if none selected yet
+      if (selectedIds.length === 0 && json.candidates?.length >= 2) {
+        setSelectedIds([json.candidates[0].id, json.candidates[1].id]);
+      }
+    } catch {
+      setError("Unable to load candidates. Please try again later.");
+      setCandidates([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [stateFilter]);
+
+  useEffect(() => {
+    fetchCandidates();
+  }, [fetchCandidates]);
+
+  const selectedCandidates = candidates.filter((c) => selectedIds.includes(c.id));
+
+  function toggleCandidate(id: number) {
     if (selectedIds.includes(id)) {
       if (selectedIds.length > 2) setSelectedIds(selectedIds.filter((s) => s !== id));
     } else if (selectedIds.length < 4) {
@@ -100,15 +142,111 @@ export default function CompareTable() {
     }
   }
 
+  // Helper to get a candidate's policy for a given category
+  function getCandidatePolicy(candidate: CandidateFromAPI, category: string): CandidatePolicy | undefined {
+    return candidate.policies.find((p) => p.category === category);
+  }
+
+  // Get unique states for the filter
+  const availableStates = Array.from(
+    new Set(candidates.filter((c) => c.state).map((c) => c.state!.abbreviation))
+  ).sort();
+
+  // ─────────────────────────────────────────────
+  // Loading state
+  // ─────────────────────────────────────────────
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-12 text-center">
+        <Loader2 size={32} className="text-[#1B2A4A] animate-spin mx-auto mb-4" />
+        <p className="text-sm text-gray-500">Loading candidates...</p>
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // Error state
+  // ─────────────────────────────────────────────
+
+  if (error) {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
+        <div className="flex items-start gap-3 text-red-700">
+          <AlertCircle size={20} className="shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold">Could not load candidates</p>
+            <p className="text-sm mt-1">{error}</p>
+            <button
+              onClick={fetchCandidates}
+              className="mt-3 text-sm font-medium text-[#1B2A4A] underline hover:no-underline"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // Empty state
+  // ─────────────────────────────────────────────
+
+  if (candidates.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-12 text-center">
+        <User size={48} className="text-gray-300 mx-auto mb-4" />
+        <h2 className="text-lg font-bold text-[#1B2A4A] mb-2">No Candidates Available</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          {stateFilter
+            ? `No candidates found for ${stateFilter.toUpperCase()}. Try selecting a different state.`
+            : "Candidate data has not been loaded into the database yet. Check back soon."}
+        </p>
+        {stateFilter && (
+          <button
+            onClick={() => { setStateFilter(""); setSelectedIds([]); }}
+            className="text-sm font-medium text-[#1B2A4A] underline hover:no-underline"
+          >
+            Clear filter
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // Main render
+  // ─────────────────────────────────────────────
+
   return (
     <div className="space-y-6">
+      {/* State filter */}
+      {availableStates.length > 1 && (
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+          <label className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 block">
+            Filter by State
+          </label>
+          <select
+            value={stateFilter}
+            onChange={(e) => { setStateFilter(e.target.value); setSelectedIds([]); }}
+            className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1B2A4A]/30 focus:border-[#1B2A4A]/50"
+          >
+            <option value="">All States</option>
+            {availableStates.map((abbr) => (
+              <option key={abbr} value={abbr}>{abbr}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Candidate selector */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-          Select Candidates to Compare (2–4)
+          Select Candidates to Compare (2-4)
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {AVAILABLE_CANDIDATES.map((c) => {
+          {candidates.slice(0, 12).map((c) => {
             const selected = selectedIds.includes(c.id);
             return (
               <button
@@ -125,9 +263,10 @@ export default function CompareTable() {
                 </div>
                 <div>
                   <p className="text-xs font-bold text-[#1B2A4A] leading-tight">{c.name}</p>
-                  <p className="text-[10px] text-gray-400">{c.office}</p>
+                  <p className="text-[10px] text-gray-400">{formatOffice(c.officeType, c.district)}</p>
+                  {c.state && <p className="text-[10px] text-gray-400">{c.state.abbreviation}</p>}
                 </div>
-                <PartyBadge party={c.party} size="xs" />
+                <PartyBadge party={partyCode(c.party)} size="xs" />
                 {selected && (
                   <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-[#1B2A4A] rounded-full flex items-center justify-center">
                     <Check size={10} className="text-white" />
@@ -137,6 +276,11 @@ export default function CompareTable() {
             );
           })}
         </div>
+        {candidates.length > 12 && (
+          <p className="text-xs text-gray-400 mt-3">
+            Showing first 12 candidates. Use the state filter to narrow results.
+          </p>
+        )}
         <p className="text-xs text-gray-400 mt-3">
           {selectedIds.length < 2 ? "Select at least 2 candidates to compare." : `Comparing ${selectedIds.length} candidates.`}
         </p>
@@ -151,7 +295,7 @@ export default function CompareTable() {
           className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden"
         >
           {/* Header row */}
-          <div className={`grid gap-px bg-gray-100`} style={{ gridTemplateColumns: `1fr repeat(${selectedCandidates.length}, 1fr)` }}>
+          <div className="grid gap-px bg-gray-100" style={{ gridTemplateColumns: `1fr repeat(${selectedCandidates.length}, 1fr)` }}>
             <div className="bg-[#1B2A4A] p-4">
               <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">Issue</p>
             </div>
@@ -162,8 +306,8 @@ export default function CompareTable() {
                     <User size={15} className="text-white/60" />
                   </div>
                   <p className="text-sm font-bold text-white leading-tight">{c.name}</p>
-                  <PartyBadge party={c.party} size="xs" showFullName />
-                  <p className="text-[10px] text-white/50">{c.office}</p>
+                  <PartyBadge party={partyCode(c.party)} size="xs" showFullName />
+                  <p className="text-[10px] text-white/50">{formatOffice(c.officeType, c.district)}</p>
                   <Link
                     href={`/candidate/${c.id}`}
                     className="text-[10px] text-blue-300 hover:text-blue-200 underline"
@@ -178,6 +322,11 @@ export default function CompareTable() {
           {/* Policy rows */}
           {POLICY_CATEGORIES.map((category) => {
             const isExpanded = expandedCategory === category;
+            const displayLabel = POLICY_DISPLAY[category] ?? category;
+
+            // Check if any selected candidate has data for this category
+            const anyHasData = selectedCandidates.some((c) => getCandidatePolicy(c, category));
+            if (!anyHasData) return null;
 
             return (
               <div key={category} className="border-b border-gray-100 last:border-0">
@@ -187,10 +336,10 @@ export default function CompareTable() {
                   className="w-full"
                   aria-expanded={isExpanded}
                 >
-                  <div className={`grid gap-px bg-gray-100`} style={{ gridTemplateColumns: `1fr repeat(${selectedCandidates.length}, 1fr)` }}>
+                  <div className="grid gap-px bg-gray-100" style={{ gridTemplateColumns: `1fr repeat(${selectedCandidates.length}, 1fr)` }}>
                     {/* Category label */}
                     <div className="bg-white p-4 flex items-center gap-2">
-                      <span className="font-semibold text-sm text-[#1B2A4A] text-left">{category}</span>
+                      <span className="font-semibold text-sm text-[#1B2A4A] text-left">{displayLabel}</span>
                       <ChevronDown
                         size={14}
                         className={`text-gray-400 ml-auto shrink-0 transition-transform ${isExpanded ? "rotate-180" : ""}`}
@@ -199,17 +348,24 @@ export default function CompareTable() {
 
                     {/* Each candidate's stance */}
                     {selectedCandidates.map((c) => {
-                      const policy = c.policies[category];
-                      if (!policy) return (
-                        <div key={c.id} className="bg-white p-4 flex items-center justify-center">
-                          <Minus size={16} className="text-gray-300" />
-                        </div>
-                      );
-                      const config = STANCE_ICONS[policy.stance];
+                      const policy = getCandidatePolicy(c, category);
+                      if (!policy) {
+                        const config = STANCE_ICONS.no_data;
+                        const Icon = config.icon;
+                        return (
+                          <div key={c.id} className={`${config.bg} p-4 flex flex-col items-center gap-1 text-center`}>
+                            <div className="w-7 h-7 rounded-full bg-white/70 flex items-center justify-center">
+                              <Icon size={15} className={config.color} />
+                            </div>
+                            <span className={`text-[10px] font-bold ${config.color}`}>{config.label}</span>
+                          </div>
+                        );
+                      }
+                      const config = STANCE_ICONS.has_policy;
                       const Icon = config.icon;
                       return (
                         <div key={c.id} className={`${config.bg} p-4 flex flex-col items-center gap-1 text-center`}>
-                          <div className={`w-7 h-7 rounded-full bg-white/70 flex items-center justify-center`}>
+                          <div className="w-7 h-7 rounded-full bg-white/70 flex items-center justify-center">
                             <Icon size={15} className={config.color} />
                           </div>
                           <span className={`text-[10px] font-bold ${config.color}`}>{config.label}</span>
@@ -221,14 +377,14 @@ export default function CompareTable() {
 
                 {/* Expanded detail */}
                 {isExpanded && (
-                  <div className={`grid bg-gray-50`} style={{ gridTemplateColumns: `1fr repeat(${selectedCandidates.length}, 1fr)` }}>
+                  <div className="grid bg-gray-50" style={{ gridTemplateColumns: `1fr repeat(${selectedCandidates.length}, 1fr)` }}>
                     <div className="p-4" />
                     {selectedCandidates.map((c) => {
-                      const policy = c.policies[category];
+                      const policy = getCandidatePolicy(c, category);
                       return (
                         <div key={c.id} className="p-4 border-l border-gray-100">
                           <p className="text-xs text-gray-600 leading-relaxed">
-                            {policy?.summary ?? "No data available."}
+                            {policy?.summary ?? "No data available for this policy area."}
                           </p>
                         </div>
                       );
@@ -238,6 +394,17 @@ export default function CompareTable() {
               </div>
             );
           })}
+
+          {/* Show message if no policy data at all */}
+          {!POLICY_CATEGORIES.some((cat) => selectedCandidates.some((c) => getCandidatePolicy(c, cat))) && (
+            <div className="p-8 text-center">
+              <Info size={24} className="text-gray-300 mx-auto mb-3" />
+              <p className="text-sm text-gray-500">
+                No policy position data is available for the selected candidates yet.
+                Visit their full profiles for more information.
+              </p>
+            </div>
+          )}
         </motion.div>
       )}
 

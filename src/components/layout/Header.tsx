@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { Landmark, Menu } from "lucide-react";
 import Navigation from "./Navigation";
 import StateSelector from "@/components/ui/StateSelector";
+import { useUserState } from "@/hooks/useUserState";
 
 // ─────────────────────────────────────────────
 // Types
@@ -21,6 +22,8 @@ interface NavItem {
 // Constants
 // ─────────────────────────────────────────────
 
+const DEFAULT_STATE = "CA";
+
 const NAV_ITEMS: NavItem[] = [
   { href: "/",           label: "Home"       },
   { href: "/bills",      label: "Bills"      },
@@ -28,6 +31,9 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/voter-info", label: "Voter Info" },
   { href: "/about",      label: "About"      },
 ];
+
+/** Paths that need `/state/{abbr}` prepended */
+const STATE_PATHS = new Set(["/bills", "/elections", "/voter-info"]);
 
 // ─────────────────────────────────────────────
 // Component
@@ -37,6 +43,13 @@ export default function Header() {
   const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { userState } = useUserState();
+
+  const stateAbbr = userState ?? DEFAULT_STATE;
+
+  /** Resolve a nav item href — prepend `/state/{abbr}` for state-scoped pages */
+  const resolveHref = (href: string) =>
+    STATE_PATHS.has(href) ? `/state/${stateAbbr}${href}` : href;
 
   // Add shadow when page is scrolled
   useEffect(() => {
@@ -82,15 +95,16 @@ export default function Header() {
               aria-label="Main navigation"
             >
               {NAV_ITEMS.map((item) => {
+                const fullHref = resolveHref(item.href);
                 const isActive =
                   item.href === "/"
                     ? pathname === "/"
-                    : pathname.startsWith(item.href);
+                    : pathname.startsWith(fullHref) || pathname.endsWith(item.href);
 
                 return (
                   <Link
                     key={item.href}
-                    href={item.href}
+                    href={fullHref}
                     aria-current={isActive ? "page" : undefined}
                     className={`relative px-4 py-2 rounded-lg text-sm font-medium
                                 transition-colors duration-150 focus-visible:outline-none

@@ -13,6 +13,7 @@ import {
   Info,
   ChevronRight,
 } from "lucide-react";
+import { useUserState } from "@/hooks/useUserState";
 
 // ─────────────────────────────────────────────
 // Types
@@ -67,6 +68,11 @@ const NAV_LINKS: NavLink[] = [
   },
 ];
 
+const DEFAULT_STATE = "CA";
+
+/** Paths that need `/state/{abbr}` prepended */
+const STATE_PATHS = new Set(["/bills", "/elections", "/voter-info"]);
+
 // ─────────────────────────────────────────────
 // Drawer animation variants
 // ─────────────────────────────────────────────
@@ -107,6 +113,13 @@ const itemVariants: Variants = {
 export default function Navigation({ isOpen, onClose }: NavigationProps) {
   const pathname = usePathname();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const { userState } = useUserState();
+
+  const stateAbbr = userState ?? DEFAULT_STATE;
+
+  /** Resolve a nav link href — prepend `/state/{abbr}` for state-scoped pages */
+  const resolveHref = (href: string) =>
+    STATE_PATHS.has(href) ? `/state/${stateAbbr}${href}` : href;
 
   // Close on Escape key
   useEffect(() => {
@@ -188,10 +201,11 @@ export default function Navigation({ isOpen, onClose }: NavigationProps) {
             {/* Nav links */}
             <ul className="flex-1 overflow-y-auto py-4 px-3" role="list">
               {NAV_LINKS.map((link, i) => {
+                const fullHref = resolveHref(link.href);
                 const isActive =
                   link.href === "/"
                     ? pathname === "/"
-                    : pathname.startsWith(link.href);
+                    : pathname.startsWith(fullHref) || pathname.endsWith(link.href);
                 const Icon = link.icon;
 
                 return (
@@ -203,7 +217,7 @@ export default function Navigation({ isOpen, onClose }: NavigationProps) {
                     animate="visible"
                   >
                     <Link
-                      href={link.href}
+                      href={fullHref}
                       className={`flex items-center gap-4 px-4 py-3.5 rounded-xl mb-1
                                   transition-all duration-150 group
                                   ${
