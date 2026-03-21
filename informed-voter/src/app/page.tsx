@@ -1,10 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  Vote,
-  FileText,
-  Users,
-  BookOpen,
   ArrowRight,
   ShieldCheck,
   BarChart3,
@@ -30,7 +26,7 @@ export const metadata: Metadata = {
 
 const QUICK_ACTIONS = [
   {
-    icon: Vote,
+    icon: "Vote",
     title: "Upcoming Elections",
     description: "See what elections are coming up in your area and what's on the ballot.",
     href: "/state/CA/elections",
@@ -39,7 +35,7 @@ const QUICK_ACTIONS = [
     border: "border-blue-100",
   },
   {
-    icon: FileText,
+    icon: "FileText",
     title: "Active Bills",
     description: "Track federal and state legislation that affects your community.",
     href: "/state/CA/bills",
@@ -48,7 +44,7 @@ const QUICK_ACTIONS = [
     border: "border-purple-100",
   },
   {
-    icon: Users,
+    icon: "Users",
     title: "Your Representatives",
     description: "Find out who represents you in Congress and your state legislature.",
     href: "/state/CA/representatives",
@@ -57,7 +53,7 @@ const QUICK_ACTIONS = [
     border: "border-emerald-100",
   },
   {
-    icon: BookOpen,
+    icon: "BookOpen",
     title: "How to Vote",
     description: "Registration deadlines, polling locations, absentee ballots, and your rights.",
     href: "/state/CA/voter-info",

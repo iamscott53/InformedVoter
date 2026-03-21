@@ -1,11 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { ArrowRight, type LucideIcon } from "lucide-react";
+import { motion, type Variants, type Transition } from "framer-motion";
+import {
+  ArrowRight,
+  Vote,
+  FileText,
+  Users,
+  BookOpen,
+} from "lucide-react";
+
+const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+  Vote,
+  FileText,
+  Users,
+  BookOpen,
+};
 
 interface CardItem {
-  icon: LucideIcon;
+  icon: string;
   title: string;
   description: string;
   href: string;
@@ -18,19 +31,21 @@ interface AnimatedCardsProps {
   items: CardItem[];
 }
 
-const containerVariants = {
+const cardTransition: Transition = { duration: 0.45, ease: "easeOut" };
+
+const containerVariants: Variants = {
   hidden: {},
   visible: {
     transition: { staggerChildren: 0.1 },
   },
 };
 
-const cardVariants = {
+const cardVariants: Variants = {
   hidden: { opacity: 0, y: 24 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.45, ease: "easeOut" },
+    transition: cardTransition,
   },
 };
 
@@ -43,7 +58,7 @@ export default function AnimatedCards({ items }: AnimatedCardsProps) {
       animate="visible"
     >
       {items.map((item) => {
-        const Icon = item.icon;
+        const Icon = ICON_MAP[item.icon] || Vote;
         return (
           <motion.div key={item.title} variants={cardVariants}>
             <Link

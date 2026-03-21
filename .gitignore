@@ -40,3 +40,29 @@ prisma/*.db-journal
 # IDE
 .vscode/
 .idea/
+
+# AI creation artifacts — prompts, configs, conversation logs
+AIDocs/
+.claude/
+CLAUDE.md
+AGENTS.md
+.cursor/
+.cursorignore
+.cursorindexingignore
+.cursorrules
+.copilot/
+.continue/
+.aider*
+.codeium/
+.windsurf/
+.bolt/
+.v0/
+.tabnine/
+
+# Secrets & credentials
+*.key
+*.secret
+*.credentials
+credentials.json
+service-account.json
+secrets/
