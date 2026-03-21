@@ -209,7 +209,7 @@ async function fetchRecentBills(maxBills: number): Promise<CongressBillListItem[
     pageNum++;
     console.log(`[sync-bills] Fetching bill list page ${pageNum}: ${nextUrl}`);
 
-    const data = await congressFetch<CongressBillListResponse>(nextUrl);
+    const data: CongressBillListResponse = await congressFetch<CongressBillListResponse>(nextUrl);
     const bills = data.bills ?? [];
     all.push(...bills);
 

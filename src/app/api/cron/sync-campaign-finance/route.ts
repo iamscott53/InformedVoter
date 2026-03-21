@@ -385,14 +385,14 @@ async function syncCandidateFinance(
   const financeData = {
     fecCandidateId,
     cycle: effectiveCycle,
-    totalRaised:               totals.receipts                              ?? null,
-    totalSpent:                totals.disbursements                         ?? null,
-    cashOnHand:                totals.last_cash_on_hand_end_period ?? totals.cash_on_hand_end_period ?? null,
-    totalDebt:                 totals.last_debts_owed_by_committee ?? totals.debts_owed_by_committee ?? null,
-    individualContributions:   totals.individual_itemized_contributions     ?? null,
-    pacContributions:          totals.other_political_committee_contributions ?? null,
-    partyContributions:        totals.political_party_committee_contributions ?? null,
-    selfFunding:               totals.candidate_contribution                ?? null,
+    totalRaised:               totals.receipts                              ?? undefined,
+    totalSpent:                totals.disbursements                         ?? undefined,
+    cashOnHand:                totals.last_cash_on_hand_end_period ?? totals.cash_on_hand_end_period ?? undefined,
+    totalDebt:                 totals.last_debts_owed_by_committee ?? totals.debts_owed_by_committee ?? undefined,
+    individualContributions:   totals.individual_itemized_contributions     ?? undefined,
+    pacContributions:          totals.other_political_committee_contributions ?? undefined,
+    partyContributions:        totals.political_party_committee_contributions ?? undefined,
+    selfFunding:               totals.candidate_contribution                ?? undefined,
     lastUpdated:               new Date(),
   };
 
