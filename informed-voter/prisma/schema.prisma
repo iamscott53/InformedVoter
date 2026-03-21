@@ -1,0 +1,459 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────
+
+enum OfficeType {
+  PRESIDENT
+  US_SENATOR
+  US_REPRESENTATIVE
+  GOVERNOR
+  STATE_SENATOR
+  STATE_REP
+  OTHER
+}
+
+enum PolicyCategory {
+  ECONOMY
+  HEALTHCARE
+  EDUCATION
+  IMMIGRATION
+  ENVIRONMENT
+  GUN_POLICY
+  FOREIGN_POLICY
+  CRIMINAL_JUSTICE
+  HOUSING
+  OTHER
+}
+
+enum Chamber {
+  HOUSE
+  SENATE
+}
+
+enum BillStatus {
+  INTRODUCED
+  IN_COMMITTEE
+  PASSED_HOUSE
+  PASSED_SENATE
+  SIGNED
+  VETOED
+  FAILED
+}
+
+enum VoteChoice {
+  YES
+  NO
+  ABSTAIN
+  NOT_VOTING
+}
+
+enum ElectionType {
+  PRIMARY
+  GENERAL
+  SPECIAL
+  RUNOFF
+}
+
+enum BookmarkEntityType {
+  BILL
+  CANDIDATE
+}
+
+enum DonorType {
+  INDIVIDUAL
+  PAC
+  PARTY
+  COMMITTEE
+}
+
+enum ContributionSizeRange {
+  UNDER_200
+  R200_TO_499
+  R500_TO_999
+  R1000_TO_2999
+  R3000_PLUS
+}
+
+enum ExpenditureCategory {
+  MEDIA
+  PAYROLL
+  TRAVEL
+  CONSULTING
+  FUNDRAISING
+  OTHER
+}
+
+enum SupportOrOppose {
+  SUPPORT
+  OPPOSE
+}
+
+enum DeadlineType {
+  REGISTRATION
+  EARLY_VOTING_START
+  EARLY_VOTING_END
+  ABSENTEE_REQUEST
+  ABSENTEE_RETURN
+  ELECTION_DAY
+}
+
+// ─────────────────────────────────────────────
+// Models
+// ─────────────────────────────────────────────
+
+model State {
+  id           Int    @id @default(autoincrement())
+  name         String @unique
+  abbreviation String @unique
+  fipsCode     String @unique
+
+  candidates          Candidate[]
+  bills               Bill[]
+  elections           Election[]
+  voterInfo           VoterInfo?
+  users               User[]
+  statePollingLocator StatePollingLocator?
+}
+
+model Candidate {
+  id            Int        @id @default(autoincrement())
+  name          String
+  party         String
+  photoUrl      String?
+  biography     String?
+  websiteUrl    String?
+  stateId       Int?
+  officeType    OfficeType
+  district      String?
+  incumbentSince DateTime?
+  termEnds      DateTime?
+  isIncumbent   Boolean    @default(false)
+  contactInfo   Json       @default("{}")
+  socialMedia   Json       @default("{}")
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  state                   State?                   @relation(fields: [stateId], references: [id])
+  policies                CandidatePolicy[]
+  sponsoredBills          Bill[]                   @relation("BillSponsor")
+  billVotes               BillVote[]
+  billCosponsorships      BillCosponsor[]
+  finance                 CandidateFinance[]
+  independentExpenditures IndependentExpenditure[]
+  bookmarks               UserBookmark[]
+
+  @@index([stateId])
+  @@index([officeType])
+  @@index([party])
+}
+
+model CandidatePolicy {
+  id                    Int            @id @default(autoincrement())
+  candidateId           Int
+  category              PolicyCategory
+  summary               String
+  supportersPerspective String?
+  criticsPerspective    String?
+  aiAnalysis            String?
+  sources               Json           @default("[]")
+  lastAnalyzedAt        DateTime?
+
+  candidate Candidate @relation(fields: [candidateId], references: [id])
+
+  @@unique([candidateId, category])
+  @@index([candidateId])
+}
+
+model Bill {
+  id                Int        @id @default(autoincrement())
+  externalId        String     @unique
+  title             String
+  shortTitle        String?
+  chamber           Chamber
+  status            BillStatus @default(INTRODUCED)
+  stateId           Int?
+  introducedDate    DateTime
+  lastActionDate    DateTime?
+  executiveSummary  String?
+  detailedSummary   String?
+  aiRiderAnalysis   String?
+  hiddenClauses     Json       @default("[]")
+  sponsorId         Int?
+  fullTextUrl       String?
+  congressGovUrl    String?
+  subjects          Json       @default("[]")
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  state    State?     @relation(fields: [stateId], references: [id])
+  sponsor  Candidate? @relation("BillSponsor", fields: [sponsorId], references: [id])
+  votes    BillVote[]
+  cosponsors BillCosponsor[]
+
+  @@index([stateId])
+  @@index([sponsorId])
+  @@index([status])
+  @@index([chamber])
+  @@index([introducedDate])
+}
+
+model BillVote {
+  id          Int        @id @default(autoincrement())
+  billId      Int
+  candidateId Int
+  vote        VoteChoice
+  voteDate    DateTime
+
+  bill      Bill      @relation(fields: [billId], references: [id])
+  candidate Candidate @relation(fields: [candidateId], references: [id])
+
+  @@unique([billId, candidateId])
+  @@index([billId])
+  @@index([candidateId])
+}
+
+model BillCosponsor {
+  id          Int @id @default(autoincrement())
+  billId      Int
+  candidateId Int
+
+  bill      Bill      @relation(fields: [billId], references: [id])
+  candidate Candidate @relation(fields: [candidateId], references: [id])
+
+  @@unique([billId, candidateId])
+  @@index([billId])
+  @@index([candidateId])
+}
+
+model Election {
+  id           Int          @id @default(autoincrement())
+  name         String
+  date         DateTime
+  electionType ElectionType
+  stateId      Int?
+  description  String?
+
+  state              State?               @relation(fields: [stateId], references: [id])
+  voterInfoDeadlines VoterInfoDeadline[]
+
+  @@index([stateId])
+  @@index([date])
+  @@index([electionType])
+}
+
+model VoterInfo {
+  id                      Int      @id @default(autoincrement())
+  stateId                 Int      @unique
+  registrationDeadline    DateTime?
+  registrationUrl         String?
+  earlyVotingStart        DateTime?
+  earlyVotingEnd          DateTime?
+  absenteeDeadline        DateTime?
+  absenteeUrl             String?
+  pollingHoursStart       String?
+  pollingHoursEnd         String?
+  voterIdRequirements     String?
+  onlineRegistration      Boolean  @default(false)
+  sameDayRegistration     Boolean  @default(false)
+  additionalNotes         String?
+  lastUpdated             DateTime @updatedAt
+  sameStateRegistration   Boolean  @default(false)
+  provisionalBallotRules  String?
+  workTimeOffLaw          String?
+  ballotTrackingUrl       String?
+  electionProtectionHotline String  @default("866-OUR-VOTE")
+  stateElectionWebsite    String?
+  stateSOSName            String?
+  stateSOSPhone           String?
+  stateSOSEmail           String?
+
+  state     State               @relation(fields: [stateId], references: [id])
+  deadlines VoterInfoDeadline[]
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String?
+  stateId   Int?
+  createdAt DateTime @default(now())
+
+  state     State?         @relation(fields: [stateId], references: [id])
+  bookmarks UserBookmark[]
+
+  @@index([stateId])
+}
+
+model UserBookmark {
+  id          Int                @id @default(autoincrement())
+  userId      Int
+  entityType  BookmarkEntityType
+  entityId    Int
+  createdAt   DateTime           @default(now())
+
+  user      User      @relation(fields: [userId], references: [id])
+  candidate Candidate? @relation(fields: [entityId], references: [id], map: "UserBookmark_candidate_fkey")
+
+  @@unique([userId, entityType, entityId])
+  @@index([userId])
+  @@index([entityType, entityId])
+}
+
+model CandidateFinance {
+  id                      Int      @id @default(autoincrement())
+  candidateId             Int
+  fecCandidateId          String?
+  cycle                   Int
+  totalRaised             Decimal  @default(0) @db.Decimal(18, 2)
+  totalSpent              Decimal  @default(0) @db.Decimal(18, 2)
+  cashOnHand              Decimal  @default(0) @db.Decimal(18, 2)
+  totalDebt               Decimal  @default(0) @db.Decimal(18, 2)
+  individualContributions Decimal  @default(0) @db.Decimal(18, 2)
+  pacContributions        Decimal  @default(0) @db.Decimal(18, 2)
+  partyContributions      Decimal  @default(0) @db.Decimal(18, 2)
+  selfFunding             Decimal  @default(0) @db.Decimal(18, 2)
+  smallDonorTotal         Decimal  @default(0) @db.Decimal(18, 2)
+  largeDonorTotal         Decimal  @default(0) @db.Decimal(18, 2)
+  lastUpdated             DateTime @updatedAt
+
+  candidate             Candidate                      @relation(fields: [candidateId], references: [id])
+  topDonors             CandidateTopDonor[]
+  topIndustries         CandidateTopIndustry[]
+  contributionsBySize   CandidateContributionBySize[]
+  contributionsByState  CandidateContributionByState[]
+  expenditures          CandidateExpenditure[]
+
+  @@unique([candidateId, cycle])
+  @@index([candidateId])
+  @@index([cycle])
+}
+
+model CandidateTopDonor {
+  id                 Int       @id @default(autoincrement())
+  candidateFinanceId Int
+  donorName          String
+  donorType          DonorType
+  employerName       String?
+  occupation         String?
+  city               String?
+  state              String?
+  totalAmount        Decimal   @db.Decimal(18, 2)
+  contributionCount  Int       @default(0)
+  cycle              Int
+
+  candidateFinance CandidateFinance @relation(fields: [candidateFinanceId], references: [id])
+
+  @@index([candidateFinanceId])
+  @@index([cycle])
+}
+
+model CandidateTopIndustry {
+  id                   Int     @id @default(autoincrement())
+  candidateFinanceId   Int
+  employerOrIndustry   String
+  totalAmount          Decimal @db.Decimal(18, 2)
+  contributionCount    Int     @default(0)
+  cycle                Int
+
+  candidateFinance CandidateFinance @relation(fields: [candidateFinanceId], references: [id])
+
+  @@index([candidateFinanceId])
+  @@index([cycle])
+}
+
+model CandidateContributionBySize {
+  id                 Int                   @id @default(autoincrement())
+  candidateFinanceId Int
+  sizeRange          ContributionSizeRange
+  total              Decimal               @db.Decimal(18, 2)
+  count              Int                   @default(0)
+  cycle              Int
+
+  candidateFinance CandidateFinance @relation(fields: [candidateFinanceId], references: [id])
+
+  @@unique([candidateFinanceId, sizeRange, cycle])
+  @@index([candidateFinanceId])
+}
+
+model CandidateContributionByState {
+  id                 Int     @id @default(autoincrement())
+  candidateFinanceId Int
+  contributorState   String  @db.VarChar(2)
+  totalAmount        Decimal @db.Decimal(18, 2)
+  contributionCount  Int     @default(0)
+  cycle              Int
+
+  candidateFinance CandidateFinance @relation(fields: [candidateFinanceId], references: [id])
+
+  @@unique([candidateFinanceId, contributorState, cycle])
+  @@index([candidateFinanceId])
+}
+
+model CandidateExpenditure {
+  id                 Int                 @id @default(autoincrement())
+  candidateFinanceId Int
+  recipientName      String
+  purpose            String?
+  totalAmount        Decimal             @db.Decimal(18, 2)
+  category           ExpenditureCategory
+  cycle              Int
+
+  candidateFinance CandidateFinance @relation(fields: [candidateFinanceId], references: [id])
+
+  @@index([candidateFinanceId])
+  @@index([cycle])
+}
+
+model IndependentExpenditure {
+  id               Int             @id @default(autoincrement())
+  candidateId      Int
+  organizationName String
+  amount           Decimal         @db.Decimal(18, 2)
+  supportOrOppose  SupportOrOppose
+  expenditureDate  DateTime
+  cycle            Int
+
+  candidate Candidate @relation(fields: [candidateId], references: [id])
+
+  @@index([candidateId])
+  @@index([cycle])
+}
+
+model VoterInfoDeadline {
+  id           Int          @id @default(autoincrement())
+  voterInfoId  Int
+  electionId   Int
+  deadlineType DeadlineType
+  deadlineDate DateTime
+  notes        String?
+
+  voterInfo VoterInfo @relation(fields: [voterInfoId], references: [id])
+  election  Election  @relation(fields: [electionId], references: [id])
+
+  @@unique([voterInfoId, electionId, deadlineType])
+  @@index([voterInfoId])
+  @@index([electionId])
+}
+
+model StatePollingLocator {
+  id                 Int      @id @default(autoincrement())
+  stateId            Int      @unique
+  officialLookupUrl  String
+  officialLookupName String
+  lastVerified       DateTime?
+  notes              String?
+
+  state State @relation(fields: [stateId], references: [id])
+}
