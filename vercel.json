@@ -1,5 +1,10 @@
 {
   "framework": "nextjs",
   "buildCommand": "next build",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "crons": [
+    { "path": "/api/cron/sync-members", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/sync-bills", "schedule": "0 7 * * *" },
+    { "path": "/api/cron/sync-campaign-finance", "schedule": "0 8 * * 1" }
+  ]
 }
