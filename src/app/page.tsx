@@ -5,6 +5,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import StateDetector from "@/components/features/StateDetector";
+import USStateMap from "@/components/features/USStateMap";
 import { ExploreStateButton, QuickActions, VoterEssentials } from "@/components/features/HomepageLinks";
 
 // ─────────────────────────────────────────────
@@ -95,6 +96,23 @@ export default function HomePage() {
       <section className="bg-white border-b border-gray-200 py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <StateDetector states={US_STATES} />
+        </div>
+      </section>
+
+      {/* ── US State Map ── */}
+      <section className="bg-white py-16 sm:py-20 border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-8 text-center">
+            <h2 className="text-2xl sm:text-3xl font-bold text-[#1B2A4A] mb-2">
+              Select Your State
+            </h2>
+            <p className="text-gray-500 max-w-xl mx-auto">
+              Click any state on the map to explore its representatives, legislation, and voter information.
+            </p>
+          </div>
+          <div className="max-w-4xl mx-auto">
+            <USStateMap />
+          </div>
         </div>
       </section>
 

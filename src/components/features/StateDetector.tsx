@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { MapPin, ChevronDown, Loader2 } from "lucide-react";
+import { MapPin, ChevronDown, Loader2, ArrowRight } from "lucide-react";
 import { useUserState } from "@/hooks/useUserState";
 
 interface State {
@@ -26,43 +26,103 @@ export default function StateDetector({ states }: StateDetectorProps) {
     }
   }
 
+  // ── Loading state ──
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center gap-3 py-4">
+        <Loader2 size={20} className="animate-spin text-[#1B2A4A]" />
+        <span className="text-base text-gray-500 font-medium">
+          Detecting your state...
+        </span>
+      </div>
+    );
+  }
+
+  // ── State detected ──
+  if (userState) {
+    return (
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-4">
+        {/* Prominent detected-state banner */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-10 h-10 bg-[#1B2A4A]/10 rounded-full">
+            <MapPin size={20} className="text-[#1B2A4A]" />
+          </div>
+          <div>
+            <p className="text-lg font-semibold text-[#1B2A4A] leading-snug">
+              We detected you&apos;re in{" "}
+              <a
+                href={`/state/${userState}`}
+                className="underline decoration-2 underline-offset-2 hover:text-[#2a3f6a] transition-colors"
+              >
+                {stateName}
+              </a>
+            </p>
+            <div className="flex items-center gap-3 mt-0.5">
+              <a
+                href={`/state/${userState}`}
+                className="inline-flex items-center gap-1 text-sm font-medium text-[#1B2A4A]/70 hover:text-[#1B2A4A] transition-colors"
+              >
+                View your state info <ArrowRight size={14} />
+              </a>
+              <span className="text-gray-300 select-none">|</span>
+              {/* Inline change-state dropdown */}
+              <div className="relative inline-flex items-center">
+                <select
+                  value=""
+                  onChange={handleChange}
+                  aria-label="Change state"
+                  className="appearance-none pl-2 pr-6 py-0.5 text-sm font-medium text-[#1B2A4A]/70 hover:text-[#1B2A4A] bg-transparent border-none cursor-pointer focus:outline-none focus:ring-0"
+                >
+                  <option value="">Not your state? Change it</option>
+                  {states.map((s) => (
+                    <option key={s.abbr} value={s.abbr}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  size={12}
+                  className="pointer-events-none absolute right-0 text-[#1B2A4A]/50"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── No state detected — prominent call-to-action ──
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-      {/* Detected state */}
-      <div className="flex items-center gap-2 text-sm text-gray-600">
-        <MapPin size={16} className="text-[#1B2A4A] shrink-0" />
-        {isLoading ? (
-          <span className="inline-flex items-center gap-1.5">
-            <Loader2 size={14} className="animate-spin text-[#1B2A4A]" />
-            Detecting your state…
-          </span>
-        ) : userState ? (
-          <span>
-            It looks like you&apos;re in{" "}
-            <a
-              href={`/state/${userState}`}
-              className="font-semibold text-[#1B2A4A] hover:underline"
-            >
-              {stateName}
-            </a>
-          </span>
-        ) : (
-          <span>Select your state to get started</span>
-        )}
+    <div className="flex flex-col sm:flex-row sm:items-center gap-5 py-5">
+      <div className="flex items-center gap-3">
+        <div className="flex items-center justify-center w-10 h-10 bg-amber-100 rounded-full">
+          <MapPin size={20} className="text-amber-600" />
+        </div>
+        <div>
+          <p className="text-lg font-semibold text-[#1B2A4A]">
+            Select your state to see local information
+          </p>
+          <p className="text-sm text-gray-500 mt-0.5">
+            We&apos;ll show you your representatives, upcoming elections, and more.
+          </p>
+        </div>
       </div>
 
-      {/* Divider */}
-      <span className="hidden sm:block text-gray-300 select-none">·</span>
-
-      {/* Manual selector */}
-      <div className="relative inline-flex items-center">
+      {/* Prominent dropdown */}
+      <div className="relative inline-flex items-center sm:ml-auto">
+        <MapPin
+          size={16}
+          className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#1B2A4A]/50 z-10"
+          aria-hidden="true"
+        />
         <select
           value=""
           onChange={handleChange}
-          aria-label="Change state"
-          className="appearance-none pl-3 pr-8 py-2 text-sm font-medium text-[#1B2A4A] bg-white border border-gray-300 rounded-lg hover:border-[#1B2A4A]/50 focus:outline-none focus:ring-2 focus:ring-[#1B2A4A]/30 cursor-pointer shadow-sm"
+          aria-label="Select your state"
+          className="appearance-none pl-9 pr-10 py-3 text-base font-semibold text-[#1B2A4A] bg-white border-2 border-[#1B2A4A]/30 rounded-xl hover:border-[#1B2A4A]/60 focus:outline-none focus:ring-2 focus:ring-[#1B2A4A]/30 focus:border-[#1B2A4A] cursor-pointer shadow-sm transition-all min-w-[220px]"
         >
-          <option value="">Change State…</option>
+          <option value="">Choose Your State</option>
           {states.map((s) => (
             <option key={s.abbr} value={s.abbr}>
               {s.name}
@@ -70,8 +130,8 @@ export default function StateDetector({ states }: StateDetectorProps) {
           ))}
         </select>
         <ChevronDown
-          size={14}
-          className="pointer-events-none absolute right-2.5 text-gray-500"
+          size={18}
+          className="pointer-events-none absolute right-3 text-[#1B2A4A]/50"
         />
       </div>
     </div>

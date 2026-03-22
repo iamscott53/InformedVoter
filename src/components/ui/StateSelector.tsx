@@ -99,6 +99,16 @@ export default function StateSelector({ className = "", compact = false }: State
 
   const selectedState = STATES.find((s) => s.abbreviation === userState);
 
+  // Determine the placeholder text shown when no state is selected
+  const placeholderText = isLoading
+    ? "Detecting..."
+    : "Select Your State";
+
+  // Display text for a selected state: full name (or abbreviation in compact mode)
+  const displayText = selectedState
+    ? (compact ? selectedState.abbreviation : selectedState.name)
+    : placeholderText;
+
   return (
     <div
       className={`relative inline-flex items-center ${className}`}
@@ -122,12 +132,13 @@ export default function StateSelector({ className = "", compact = false }: State
                     hover:bg-white/20 hover:border-white/30
                     focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent
                     transition-colors disabled:opacity-50 disabled:cursor-wait
+                    ${!userState && !isLoading ? "ring-1 ring-white/40 font-semibold" : ""}
                     ${compact
                       ? "pl-7 pr-7 py-1.5 w-24 text-center"
-                      : "pl-8 pr-8 py-2 w-44"}`}
+                      : "pl-8 pr-8 py-2 w-52"}`}
       >
-        <option value="" className="bg-[#1B2A4A] text-white">
-          {isLoading ? "Detecting…" : "Select State"}
+        <option value="" disabled className="bg-[#1B2A4A] text-white">
+          {placeholderText}
         </option>
         {STATES.map((state) => (
           <option
