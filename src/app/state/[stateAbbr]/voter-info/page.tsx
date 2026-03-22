@@ -164,6 +164,8 @@ export default async function VoterInfoPage({
     },
   ];
 
+  const stateWebsite = voterInfo?.stateElectionWebsite ?? "https://vote.gov";
+
   // Build voting rules from real DB data
   const votingRules = voterInfo
     ? [
@@ -171,18 +173,22 @@ export default async function VoterInfoPage({
           title: "Registration Deadline",
           value: voterInfo.registrationDeadline
             ? voterInfo.registrationDeadline.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-            : "See state website",
+            : "Check your state website",
           note: voterInfo.sameDayRegistration
             ? "Same-day registration is available at the polls."
-            : "Check the state election website for the exact deadline.",
+            : (voterInfo.additionalNotes ?? "Visit your state election website for the exact deadline."),
+          link: voterInfo.registrationUrl ?? stateWebsite,
+          linkLabel: "Register to Vote",
           icon: Calendar,
           color: "text-red-600",
           bg: "bg-red-50",
         },
         {
           title: "Voter ID Requirements",
-          value: voterInfo.voterIdRequirements ?? "See state website",
-          note: voterInfo.additionalNotes ?? "Check your state's official election website for full requirements.",
+          value: voterInfo.voterIdRequirements ?? "Check your state website",
+          note: "Visit your state's official election website for full ID requirements and accepted forms of identification.",
+          link: stateWebsite,
+          linkLabel: "View Full ID Requirements",
           icon: ShieldCheck,
           color: "text-blue-600",
           bg: "bg-blue-50",
@@ -191,10 +197,12 @@ export default async function VoterInfoPage({
           title: "Early Voting",
           value: voterInfo.earlyVotingStart
             ? `Starts ${voterInfo.earlyVotingStart.toLocaleDateString("en-US", { month: "long", day: "numeric" })}`
-            : "See state website",
+            : "Check your state website for dates",
           note: voterInfo.earlyVotingEnd
-            ? `Early voting ends ${voterInfo.earlyVotingEnd.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.`
-            : "Check your state election website for early voting locations.",
+            ? `Early voting ends ${voterInfo.earlyVotingEnd.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}. Contact your local election office for early voting locations and hours.`
+            : "Early voting availability and dates vary. Visit your state election website for locations and hours.",
+          link: stateWebsite,
+          linkLabel: "Find Early Voting Locations",
           icon: ClipboardCheck,
           color: "text-emerald-600",
           bg: "bg-emerald-50",
@@ -203,8 +211,10 @@ export default async function VoterInfoPage({
           title: "Absentee / Vote-by-Mail",
           value: voterInfo.absenteeDeadline
             ? `Deadline: ${voterInfo.absenteeDeadline.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
-            : "Available — check state website",
+            : "Available — check state website for deadlines",
           note: "Request your absentee ballot early to ensure it arrives and is returned on time.",
+          link: voterInfo.absenteeUrl ?? stateWebsite,
+          linkLabel: "Request Absentee Ballot",
           icon: Mail,
           color: "text-purple-600",
           bg: "bg-purple-50",
@@ -214,8 +224,10 @@ export default async function VoterInfoPage({
           value:
             voterInfo.pollingHoursStart && voterInfo.pollingHoursEnd
               ? `${voterInfo.pollingHoursStart} – ${voterInfo.pollingHoursEnd}`
-              : "See state website",
+              : "Check your state website",
           note: "Hours may vary by county. Check your local election office for exact times.",
+          link: stateWebsite,
+          linkLabel: "Find Your Polling Place",
           icon: Clock,
           color: "text-teal-600",
           bg: "bg-teal-50",
@@ -264,8 +276,8 @@ export default async function VoterInfoPage({
         {/* ── Section A: Action Cards ── */}
         <AnimatedSection delay={0}>
           <section>
-            <h2 className="text-xl font-bold text-[#1B2A4A] mb-2">Take Action</h2>
-            <p className="text-sm text-gray-500 mb-6">
+            <h2 className="text-2xl font-bold text-[#1B2A4A] mb-2">Take Action</h2>
+            <p className="text-base text-gray-500 mb-6">
               Quick links to official voter registration and ballot tools.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -277,13 +289,13 @@ export default async function VoterInfoPage({
                     className={`flex flex-col gap-4 p-5 rounded-2xl border ${card.border} ${card.bg}`}
                   >
                     <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-white shadow-sm">
-                      <Icon size={20} className={card.color} />
+                      <Icon size={22} className={card.color} />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-bold text-[#1B2A4A] text-sm mb-1">{card.title}</h3>
-                      <p className="text-xs text-gray-500 leading-relaxed">{card.description}</p>
+                      <h3 className="font-bold text-[#1B2A4A] text-base mb-1">{card.title}</h3>
+                      <p className="text-sm text-gray-600 leading-relaxed">{card.description}</p>
                       {card.turboVoteEmbed && (
-                        <span className="inline-block mt-2 text-[10px] font-medium bg-white/70 text-gray-500 px-2 py-0.5 rounded">
+                        <span className="inline-block mt-2 text-xs font-medium bg-white/70 text-gray-500 px-2 py-0.5 rounded">
                           Powered by TurboVote
                         </span>
                       )}
@@ -292,9 +304,9 @@ export default async function VoterInfoPage({
                       href={card.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`inline-flex items-center justify-center gap-1.5 text-xs font-bold ${card.color} bg-white px-3 py-2 rounded-lg hover:shadow-sm transition-shadow`}
+                      className={`inline-flex items-center justify-center gap-1.5 text-sm font-bold ${card.color} bg-white px-4 py-2.5 rounded-lg hover:shadow-sm transition-shadow`}
                     >
-                      {card.cta} <ExternalLink size={11} />
+                      {card.cta} <ExternalLink size={14} />
                     </a>
                   </div>
                 );
@@ -307,8 +319,8 @@ export default async function VoterInfoPage({
         {votingRules.length > 0 && (
           <AnimatedSection delay={0.05}>
             <section>
-              <h2 className="text-xl font-bold text-[#1B2A4A] mb-2">{abbr} Voting Rules</h2>
-              <p className="text-sm text-gray-500 mb-6">
+              <h2 className="text-2xl font-bold text-[#1B2A4A] mb-2">{abbr} Voting Rules</h2>
+              <p className="text-base text-gray-500 mb-6">
                 State-specific rules for registration, ID requirements, and voting options.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -317,13 +329,21 @@ export default async function VoterInfoPage({
                   return (
                     <div key={rule.title} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
                       <div className="flex items-start gap-3">
-                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${rule.bg} shrink-0`}>
-                          <Icon size={16} className={rule.color} />
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${rule.bg} shrink-0`}>
+                          <Icon size={20} className={rule.color} />
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-[#1B2A4A] text-sm mb-0.5">{rule.title}</h3>
-                          <p className={`text-sm font-bold ${rule.color} mb-1.5`}>{rule.value}</p>
-                          <p className="text-xs text-gray-500 leading-relaxed">{rule.note}</p>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-[#1B2A4A] text-base mb-0.5">{rule.title}</h3>
+                          <p className={`text-base font-bold ${rule.color} mb-2`}>{rule.value}</p>
+                          <p className="text-sm text-gray-600 leading-relaxed mb-3">{rule.note}</p>
+                          <a
+                            href={rule.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`inline-flex items-center gap-1.5 text-sm font-semibold ${rule.color} hover:underline`}
+                          >
+                            {rule.linkLabel} <ExternalLink size={13} />
+                          </a>
                         </div>
                       </div>
                     </div>
@@ -342,8 +362,8 @@ export default async function VoterInfoPage({
                 <div className="flex items-center gap-3">
                   <ShieldCheck size={24} />
                   <div>
-                    <h2 className="text-xl font-bold">Know Your Rights at the Polls</h2>
-                    <p className="text-white/60 text-sm mt-0.5">
+                    <h2 className="text-2xl font-bold">Know Your Rights at the Polls</h2>
+                    <p className="text-white/70 text-base mt-0.5">
                       You have federally and state-protected rights as a voter.
                     </p>
                   </div>
@@ -353,19 +373,19 @@ export default async function VoterInfoPage({
                 <div className="space-y-3">
                   {VOTER_RIGHTS.map((item, i) => (
                     <div key={i} className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors">
-                      <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                      <CheckCircle2 size={18} className="text-emerald-500 shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-sm font-semibold text-[#1B2A4A]">{item.right}</p>
-                        <p className="text-sm text-gray-500 leading-relaxed mt-0.5">{item.detail}</p>
+                        <p className="text-base font-semibold text-[#1B2A4A]">{item.right}</p>
+                        <p className="text-base text-gray-600 leading-relaxed mt-0.5">{item.detail}</p>
                       </div>
                     </div>
                   ))}
                 </div>
                 <div className="mt-5 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
-                  <Phone size={16} className="text-red-600 shrink-0 mt-0.5" />
+                  <Phone size={18} className="text-red-600 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-bold text-red-800">Experiencing problems at the polls?</p>
-                    <p className="text-sm text-red-700 mt-0.5">
+                    <p className="text-base font-bold text-red-800">Experiencing problems at the polls?</p>
+                    <p className="text-base text-red-700 mt-0.5">
                       Call the nonpartisan Election Protection hotline:{" "}
                       <a href={hotlineHref} className="font-bold underline hover:no-underline">
                         1-{hotline}
@@ -381,8 +401,8 @@ export default async function VoterInfoPage({
         {/* ── Section D: What's on My Ballot ── */}
         <AnimatedSection delay={0.15}>
           <section>
-            <h2 className="text-xl font-bold text-[#1B2A4A] mb-2">What&apos;s On My Ballot?</h2>
-            <p className="text-sm text-gray-500 mb-6">
+            <h2 className="text-2xl font-bold text-[#1B2A4A] mb-2">What&apos;s On My Ballot?</h2>
+            <p className="text-base text-gray-500 mb-6">
               Enter your address to see your personalized sample ballot.
             </p>
             <BallotAddressInput />
@@ -393,19 +413,19 @@ export default async function VoterInfoPage({
         {keyDates.length > 0 && (
           <AnimatedSection delay={0.2}>
             <section>
-              <h2 className="text-xl font-bold text-[#1B2A4A] mb-2">Key Dates</h2>
-              <p className="text-sm text-gray-500 mb-6">
+              <h2 className="text-2xl font-bold text-[#1B2A4A] mb-2">Key Dates</h2>
+              <p className="text-base text-gray-500 mb-6">
                 Important electoral deadlines and election days for {abbr}.
               </p>
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
                 <div className="space-y-3">
                   {keyDates.map((item, i) => (
                     <div key={i} className="flex items-center gap-4 py-2 border-b border-gray-50 last:border-0">
-                      <span className={`text-xs font-bold text-white px-3 py-1 rounded-md shrink-0 min-w-[90px] text-center ${item.color}`}>
+                      <span className={`text-sm font-bold text-white px-3 py-1.5 rounded-md shrink-0 min-w-[100px] text-center ${item.color}`}>
                         {item.date.split(",")[0]}
                       </span>
-                      <span className="text-sm text-gray-700">{item.label}</span>
-                      <span className="ml-auto text-xs text-gray-400 shrink-0 hidden sm:block">{item.date}</span>
+                      <span className="text-base text-gray-700">{item.label}</span>
+                      <span className="ml-auto text-sm text-gray-400 shrink-0 hidden sm:block">{item.date}</span>
                     </div>
                   ))}
                 </div>
@@ -418,18 +438,18 @@ export default async function VoterInfoPage({
         <AnimatedSection delay={0.25}>
           <section>
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-              <h2 className="text-xl font-bold text-[#1B2A4A] mb-1 flex items-center gap-2">
-                <AlertTriangle size={18} className="text-amber-500" />
+              <h2 className="text-2xl font-bold text-[#1B2A4A] mb-1 flex items-center gap-2">
+                <AlertTriangle size={20} className="text-amber-500" />
                 Media Literacy for Voters
               </h2>
-              <p className="text-sm text-gray-500 mb-6">
+              <p className="text-base text-gray-500 mb-6">
                 Tips for evaluating political news and protecting yourself from disinformation.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {MEDIA_LITERACY_TIPS.map((item, i) => (
                   <div key={i} className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
-                    <span className="text-xl shrink-0">{item.icon}</span>
-                    <p className="text-sm text-gray-700 leading-relaxed">{item.tip}</p>
+                    <span className="text-2xl shrink-0">{item.icon}</span>
+                    <p className="text-base text-gray-700 leading-relaxed">{item.tip}</p>
                   </div>
                 ))}
               </div>
