@@ -8,7 +8,7 @@
 // ─────────────────────────────────────────────
 
 import { prisma } from "@/lib/db";
-import { OfficeType, ContributionSizeRange } from "@prisma/client";
+import { OfficeType, ContributionSizeRange, DonorType, ExpenditureCategory } from "@prisma/client";
 
 const FEC_API_BASE = "https://api.open.fec.gov/v1";
 
@@ -92,6 +92,44 @@ interface FecContributionByStateResult {
 
 interface FecContributionByStateResponse {
   results: FecContributionByStateResult[];
+  pagination: FecPagination;
+}
+
+interface FecCommitteeResult {
+  committee_id: string;
+  designation: string;       // "P" = principal campaign committee
+  name: string;
+}
+
+interface FecCommitteeResponse {
+  results: FecCommitteeResult[];
+  pagination: FecPagination;
+}
+
+interface FecScheduleAResult {
+  contributor_name: string;
+  contributor_employer: string | null;
+  contributor_occupation: string | null;
+  contributor_city: string | null;
+  contributor_state: string | null;
+  contribution_receipt_amount: number;
+  entity_type: string | null;  // "IND", "COM", "ORG", etc.
+}
+
+interface FecScheduleAResponse {
+  results: FecScheduleAResult[];
+  pagination: FecPagination;
+}
+
+interface FecScheduleBResult {
+  recipient_name: string;
+  disbursement_description: string | null;
+  disbursement_amount: number;
+  disbursement_type_description: string | null;
+}
+
+interface FecScheduleBResponse {
+  results: FecScheduleBResult[];
   pagination: FecPagination;
 }
 
@@ -322,6 +360,120 @@ async function fetchContributionsByState(
 }
 
 // ─────────────────────────────────────────────
+// Step 5 — Fetch the principal campaign committee ID
+// ─────────────────────────────────────────────
+
+async function fetchCommitteeId(
+  fecCandidateId: string,
+  cycle: number
+): Promise<string | null> {
+  const url = buildFecUrl(`/candidate/${fecCandidateId}/committees/`, {
+    cycle: String(cycle),
+    designation: "P",
+  });
+
+  try {
+    const data = await fecFetch<FecCommitteeResponse>(url);
+    const results = data.results ?? [];
+    // Find the principal campaign committee (designation "P")
+    const principal = results.find((r) => r.designation === "P");
+    return principal?.committee_id ?? results[0]?.committee_id ?? null;
+  } catch (err) {
+    console.warn(
+      `[sync-campaign-finance] Committee fetch failed for ${fecCandidateId}:`, err
+    );
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────
+// Step 6 — Fetch top donors (Schedule A)
+// ─────────────────────────────────────────────
+
+async function fetchTopDonors(
+  committeeId: string,
+  cycle: number
+): Promise<FecScheduleAResult[]> {
+  const url = buildFecUrl("/schedules/schedule_a/", {
+    committee_id: committeeId,
+    sort_hide_null: "true",
+    sort: "-contribution_receipt_amount",
+    per_page: "20",
+    two_year_transaction_period: String(cycle),
+  });
+
+  try {
+    const data = await fecFetch<FecScheduleAResponse>(url);
+    return data.results ?? [];
+  } catch (err) {
+    console.warn(
+      `[sync-campaign-finance] Top donors fetch failed for committee ${committeeId}:`, err
+    );
+    return [];
+  }
+}
+
+/**
+ * Map FEC entity_type to our DonorType enum.
+ * "IND" → INDIVIDUAL, "COM" → PAC, "ORG" → COMMITTEE, default → INDIVIDUAL
+ */
+function mapEntityTypeToDonorType(entityType: string | null): DonorType {
+  switch (entityType) {
+    case "IND": return DonorType.INDIVIDUAL;
+    case "COM": return DonorType.PAC;
+    case "ORG": return DonorType.COMMITTEE;
+    default:    return DonorType.INDIVIDUAL;
+  }
+}
+
+// ─────────────────────────────────────────────
+// Step 7 — Fetch expenditures (Schedule B)
+// ─────────────────────────────────────────────
+
+async function fetchExpenditures(
+  committeeId: string,
+  cycle: number
+): Promise<FecScheduleBResult[]> {
+  const url = buildFecUrl("/schedules/schedule_b/", {
+    committee_id: committeeId,
+    sort_hide_null: "true",
+    sort: "-disbursement_amount",
+    per_page: "20",
+    two_year_transaction_period: String(cycle),
+  });
+
+  try {
+    const data = await fecFetch<FecScheduleBResponse>(url);
+    return data.results ?? [];
+  } catch (err) {
+    console.warn(
+      `[sync-campaign-finance] Expenditures fetch failed for committee ${committeeId}:`, err
+    );
+    return [];
+  }
+}
+
+/**
+ * Map FEC disbursement_type_description to our ExpenditureCategory enum.
+ * Checks for keyword matches; defaults to OTHER.
+ */
+function mapDisbursementToCategory(description: string | null): ExpenditureCategory {
+  if (!description) return ExpenditureCategory.OTHER;
+  const upper = description.toUpperCase();
+  if (upper.includes("MEDIA"))          return ExpenditureCategory.MEDIA;
+  if (upper.includes("PAYROLL") || upper.includes("SALARY")) return ExpenditureCategory.PAYROLL;
+  if (upper.includes("TRAVEL"))         return ExpenditureCategory.TRAVEL;
+  if (upper.includes("CONSULT"))        return ExpenditureCategory.CONSULTING;
+  if (upper.includes("FUNDRAIS"))       return ExpenditureCategory.FUNDRAISING;
+  return ExpenditureCategory.OTHER;
+}
+
+/** Small delay helper to avoid hammering the FEC API */
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ─────────────────────────────────────────────
 // Upsert all finance data for a single candidate
 // ─────────────────────────────────────────────
 
@@ -462,10 +614,103 @@ async function syncCandidateFinance(
     });
   }
 
+  // ── 6. Fetch committee ID, then top donors and expenditures ─────────────────
+  let topDonorCount = 0;
+  let expenditureCount = 0;
+
+  try {
+    await delay(500);
+    const committeeId = await fetchCommitteeId(fecCandidateId, effectiveCycle);
+
+    if (committeeId) {
+      // ── 6a. Fetch and persist top donors (Schedule A) ─────────────────────
+      try {
+        await delay(500);
+        const donorResults = await fetchTopDonors(committeeId, effectiveCycle);
+
+        if (donorResults.length > 0) {
+          // Delete existing top donors for this finance record (no unique constraint)
+          await prisma.candidateTopDonor.deleteMany({
+            where: { candidateFinanceId: financeId },
+          });
+
+          for (const donor of donorResults) {
+            if (!donor.contributor_name) continue;
+
+            await prisma.candidateTopDonor.create({
+              data: {
+                candidateFinanceId: financeId,
+                donorName: donor.contributor_name,
+                donorType: mapEntityTypeToDonorType(donor.entity_type),
+                employerName: donor.contributor_employer ?? null,
+                occupation: donor.contributor_occupation ?? null,
+                city: donor.contributor_city ?? null,
+                state: donor.contributor_state ?? null,
+                totalAmount: donor.contribution_receipt_amount,
+                contributionCount: 1,
+                cycle: effectiveCycle,
+              },
+            });
+            topDonorCount++;
+          }
+        }
+      } catch (err) {
+        console.warn(
+          `[sync-campaign-finance] Top donors sync failed for ${fecCandidateId} (committee ${committeeId}):`,
+          err
+        );
+      }
+
+      // ── 6b. Fetch and persist expenditures (Schedule B) ───────────────────
+      try {
+        await delay(500);
+        const expenditureResults = await fetchExpenditures(committeeId, effectiveCycle);
+
+        if (expenditureResults.length > 0) {
+          // Delete existing expenditures for this finance record (no unique constraint)
+          await prisma.candidateExpenditure.deleteMany({
+            where: { candidateFinanceId: financeId },
+          });
+
+          for (const exp of expenditureResults) {
+            if (!exp.recipient_name) continue;
+
+            await prisma.candidateExpenditure.create({
+              data: {
+                candidateFinanceId: financeId,
+                recipientName: exp.recipient_name,
+                purpose: exp.disbursement_description ?? null,
+                totalAmount: exp.disbursement_amount,
+                category: mapDisbursementToCategory(exp.disbursement_type_description),
+                cycle: effectiveCycle,
+              },
+            });
+            expenditureCount++;
+          }
+        }
+      } catch (err) {
+        console.warn(
+          `[sync-campaign-finance] Expenditures sync failed for ${fecCandidateId} (committee ${committeeId}):`,
+          err
+        );
+      }
+    } else {
+      console.warn(
+        `[sync-campaign-finance] No committee ID found for ${fecCandidateId} — skipping top donors and expenditures`
+      );
+    }
+  } catch (err) {
+    console.warn(
+      `[sync-campaign-finance] Committee/donors/expenditures sync failed for ${fecCandidateId}:`,
+      err
+    );
+  }
+
   console.log(
     `[sync-campaign-finance] Synced ${candidate.name} (${fecCandidateId}) — ` +
       `raised: $${totals.receipts?.toLocaleString() ?? "n/a"}, ` +
-      `size buckets: ${sizeResults.length}, states: ${stateResults.length}`
+      `size buckets: ${sizeResults.length}, states: ${stateResults.length}, ` +
+      `top donors: ${topDonorCount}, expenditures: ${expenditureCount}`
   );
 
   return "synced";

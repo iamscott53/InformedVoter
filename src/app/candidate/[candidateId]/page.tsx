@@ -65,10 +65,9 @@ export default async function CandidatePage({
       },
       finance: {
         orderBy: { cycle: "desc" },
-        take: 1,
         include: {
-          topDonors: { orderBy: { totalAmount: "desc" }, take: 5 },
-          expenditures: { orderBy: { totalAmount: "desc" }, take: 5 },
+          topDonors: { orderBy: { totalAmount: "desc" } },
+          expenditures: { orderBy: { totalAmount: "desc" } },
         },
       },
     },
@@ -97,43 +96,28 @@ export default async function CandidatePage({
     description: `${bv.bill.externalId}`,
   }));
 
-  // Map finance data
-  const latestFinance = candidate.finance[0] ?? null;
-  const campaignFinance = {
-    totalRaised: latestFinance ? Number(latestFinance.totalRaised) : 0,
-    totalSpent: latestFinance ? Number(latestFinance.totalSpent) : 0,
-    cashOnHand: latestFinance ? Number(latestFinance.cashOnHand) : 0,
-    topDonors: latestFinance
-      ? latestFinance.topDonors.map((d) => ({
-          name: d.donorName,
-          amount: Number(d.totalAmount),
-          type: d.donorType,
-        }))
-      : [],
-    donorTypes: latestFinance
-      ? (() => {
-          const total = Number(latestFinance.individualContributions) +
-            Number(latestFinance.pacContributions) +
-            Number(latestFinance.partyContributions) +
-            Number(latestFinance.selfFunding);
-          if (total === 0) return [];
-          return [
-            { type: "Individual", pct: Math.round((Number(latestFinance.individualContributions) / total) * 100) },
-            { type: "PAC", pct: Math.round((Number(latestFinance.pacContributions) / total) * 100) },
-            { type: "Party", pct: Math.round((Number(latestFinance.partyContributions) / total) * 100) },
-            { type: "Self-Funding", pct: Math.round((Number(latestFinance.selfFunding) / total) * 100) },
-          ].filter((d) => d.pct > 0);
-        })()
-      : [],
-    spending: latestFinance
-      ? latestFinance.expenditures.map((e) => {
-          const pct = Number(latestFinance.totalSpent) > 0
-            ? Math.round((Number(e.totalAmount) / Number(latestFinance.totalSpent)) * 100)
-            : 0;
-          return { category: e.purpose ?? e.category, pct, amount: Number(e.totalAmount) };
-        })
-      : [],
-  };
+  // Serialize all finance cycles for client-side cycle selection
+  const financeRecords = candidate.finance.map((f) => ({
+    cycle: f.cycle,
+    totalRaised: Number(f.totalRaised),
+    totalSpent: Number(f.totalSpent),
+    cashOnHand: Number(f.cashOnHand),
+    individualContributions: Number(f.individualContributions),
+    pacContributions: Number(f.pacContributions),
+    partyContributions: Number(f.partyContributions),
+    selfFunding: Number(f.selfFunding),
+    topDonors: f.topDonors.map((d) => ({
+      name: d.donorName,
+      amount: Number(d.totalAmount),
+      type: d.donorType,
+      employer: d.employerName ?? null,
+      occupation: d.occupation ?? null,
+    })),
+    expenditures: f.expenditures.map((e) => ({
+      category: e.purpose ?? e.category,
+      amount: Number(e.totalAmount),
+    })),
+  }));
 
   // Shape for CandidateTabs
   const candidateForTabs = {
@@ -145,7 +129,7 @@ export default async function CandidatePage({
     website: candidate.websiteUrl ?? contactInfo.website ?? "#",
     policies,
     votingRecord,
-    campaignFinance,
+    financeRecords,
   };
 
   return (
