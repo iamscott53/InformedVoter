@@ -8,8 +8,17 @@ import AnimatedCards from "@/components/features/AnimatedCards";
 const DEFAULT_STATE = "CA";
 
 export function ExploreStateButton() {
-  const { userState } = useUserState();
+  const { userState, isLoading } = useUserState();
   const state = userState ?? DEFAULT_STATE;
+
+  // Don't render the link until the hook has resolved to avoid linking to the wrong state
+  if (isLoading) {
+    return (
+      <span className="inline-flex items-center gap-2 bg-white/70 text-[#1B2A4A] font-semibold px-6 py-3 rounded-lg shadow-lg">
+        Explore Your State <ArrowRight size={16} />
+      </span>
+    );
+  }
 
   return (
     <Link
@@ -71,12 +80,12 @@ const QUICK_ACTIONS: QuickAction[] = [
 ];
 
 export function QuickActions() {
-  const { userState } = useUserState();
+  const { userState, isLoading } = useUserState();
   const state = userState ?? DEFAULT_STATE;
 
   const items = QUICK_ACTIONS.map((a) => ({
     ...a,
-    href: `/state/${state}${a.path}`,
+    href: isLoading ? "#" : `/state/${state}${a.path}`,
   }));
 
   return <AnimatedCards items={items} />;
@@ -110,7 +119,7 @@ const VOTER_ESSENTIALS = [
 ];
 
 export function VoterEssentials() {
-  const { userState } = useUserState();
+  const { userState, isLoading } = useUserState();
   const state = userState ?? DEFAULT_STATE;
 
   return (
@@ -119,7 +128,7 @@ export function VoterEssentials() {
         const Icon = item.icon;
         const href = item.path.startsWith("/about")
           ? item.path
-          : `/state/${state}${item.path}`;
+          : isLoading ? "#" : `/state/${state}${item.path}`;
         return (
           <Link
             key={item.title}

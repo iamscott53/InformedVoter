@@ -71,26 +71,23 @@ export interface UseUserStateReturn {
 // ─────────────────────────────────────────────
 
 export function useUserState(): UseUserStateReturn {
-  const [userState, _setUserState] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Read cookie synchronously on first render to avoid flash of wrong state
+  const initialState = typeof document !== "undefined" ? readCookie(COOKIE_NAME)?.toUpperCase() ?? null : null;
+  const [userState, _setUserState] = useState<string | null>(initialState);
+  const [isLoading, setIsLoading] = useState(initialState === null);
   const [isGeolocated, setIsGeolocated] = useState(false);
 
-  // On mount: read from cookie; if missing, attempt IP geolocation
+  // On mount: if no cookie, attempt IP geolocation
   useEffect(() => {
+    // If we already have a state from the cookie, no need to geolocate
+    if (userState) {
+      setIsLoading(false);
+      return;
+    }
+
     let cancelled = false;
 
     async function init() {
-      const fromCookie = readCookie(COOKIE_NAME);
-
-      if (fromCookie) {
-        if (!cancelled) {
-          _setUserState(fromCookie.toUpperCase());
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      // No cookie — try IP-based geolocation
       const detected = await detectStateFromIP();
       if (!cancelled) {
         if (detected) {
@@ -107,7 +104,7 @@ export function useUserState(): UseUserStateReturn {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setUserState = useCallback((abbr: string) => {
     const normalized = abbr.toUpperCase();
