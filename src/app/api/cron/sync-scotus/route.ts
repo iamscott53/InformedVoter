@@ -3,17 +3,18 @@ import { prisma } from "@/lib/db";
 // ─────────────────────────────────────────────
 // GET /api/cron/sync-scotus
 //
-// Syncs SCOTUS data from two sources:
-//   1. Oyez API — cases, justices, per-justice votes + ideology scores
-//   2. CourtListener API — financial disclosures (gifts, reimbursements)
+// Incremental sync — checks for changes before doing work:
+//   1. Oyez API — justices (skip if recently synced), cases (skip terms with no new cases)
+//   2. CourtListener API — financial disclosures (skip justices with no new disclosures)
 //
-// Both APIs are free. CourtListener works without auth but benefits from
-// a token (COURTLISTENER_API_TOKEN in .env) for higher rate limits.
+// Both APIs are free. CourtListener benefits from a token for higher rate limits.
+// Set COURTLISTENER_API_TOKEN in .env (optional).
 // ─────────────────────────────────────────────
 
 const CURRENT_TERM = new Date().getFullYear();
 const TERMS_TO_SYNC = [CURRENT_TERM, CURRENT_TERM - 1, CURRENT_TERM - 2];
-const DELAY_MS = 400; // polite delay between requests
+const DELAY_MS = 400;
+const JUSTICE_REFRESH_DAYS = 30; // Only re-fetch justice details every 30 days
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // ─────────────────────────────────────────────
@@ -34,10 +35,9 @@ interface OyezCaseListItem {
 
 interface OyezVote {
   member: { identifier: string; name: string };
-  vote: string; // "majority" | "minority"
+  vote: string;
   opinion_type?: string;
   ideology?: number;
-  joining?: Array<{ identifier: string }>;
 }
 
 interface OyezDecision {
@@ -86,16 +86,12 @@ interface OyezJusticeDetail extends OyezJustice {
   home_state: string;
 }
 
-// ─────────────────────────────────────────────
 // CourtListener types
-// ─────────────────────────────────────────────
-
 interface CLGift {
   source: string;
   description: string;
   value: string;
   redacted: boolean;
-  financial_disclosure: string; // URL
 }
 
 interface CLReimbursement {
@@ -104,12 +100,11 @@ interface CLReimbursement {
   purpose: string;
   items_paid_or_provided: string;
   redacted: boolean;
-  financial_disclosure: string;
 }
 
 interface CLDisclosure {
   id: number;
-  person: string; // URL
+  person: string;
   year: number;
   filepath: string;
   is_amended: boolean;
@@ -138,13 +133,9 @@ async function fetchOyez<T>(path: string): Promise<T | null> {
 }
 
 function courtListenerHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
   const token = process.env.COURTLISTENER_API_TOKEN?.trim();
-  if (token) {
-    headers["Authorization"] = `Token ${token}`;
-  }
+  if (token) headers["Authorization"] = `Token ${token}`;
   return headers;
 }
 
@@ -162,19 +153,37 @@ async function fetchCL<T>(path: string): Promise<T | null> {
 }
 
 // ─────────────────────────────────────────────
-// Sync logic
+// Phase 1: Incremental justice sync
 // ─────────────────────────────────────────────
 
-async function syncJustices(): Promise<{ synced: number; errors: number }> {
+async function syncJustices(): Promise<{
+  synced: number;
+  skipped: number;
+  errors: number;
+}> {
   let synced = 0;
+  let skipped = 0;
   let errors = 0;
 
   const justices = await fetchOyez<OyezJustice[]>("/justices");
-  if (!justices) return { synced: 0, errors: 1 };
+  if (!justices) return { synced: 0, skipped: 0, errors: 1 };
+
+  const staleThreshold = new Date();
+  staleThreshold.setDate(staleThreshold.getDate() - JUSTICE_REFRESH_DAYS);
 
   for (const j of justices) {
     try {
-      // Fetch full detail for biography
+      // Check if we already have this justice and it's fresh
+      const existing = await prisma.justice.findUnique({
+        where: { oyezIdentifier: j.identifier },
+        select: { id: true, updatedAt: true },
+      });
+
+      if (existing && existing.updatedAt > staleThreshold) {
+        skipped++;
+        continue; // Recently synced — skip
+      }
+
       await sleep(DELAY_MS);
       const detail = await fetchOyez<OyezJusticeDetail>(
         `/people/${j.identifier}`
@@ -208,8 +217,7 @@ async function syncJustices(): Promise<{ synced: number; errors: number }> {
             scotusRole?.date_end && scotusRole.date_end > 0
               ? new Date(scotusRole.date_end * 1000)
               : null,
-          isActive:
-            !scotusRole?.date_end || scotusRole.date_end <= 0,
+          isActive: !scotusRole?.date_end || scotusRole.date_end <= 0,
         },
         update: {
           name: j.name,
@@ -218,32 +226,59 @@ async function syncJustices(): Promise<{ synced: number; errors: number }> {
           lawSchool: detail?.law_school ?? null,
           appointingPresident: scotusRole?.appointing_president ?? null,
           roleTitle: scotusRole?.role_title ?? null,
-          isActive:
-            !scotusRole?.date_end || scotusRole.date_end <= 0,
+          isActive: !scotusRole?.date_end || scotusRole.date_end <= 0,
         },
       });
       synced++;
     } catch (err) {
-      console.error(`[sync-scotus] Error syncing justice ${j.identifier}:`, err);
+      console.error(
+        `[sync-scotus] Error syncing justice ${j.identifier}:`,
+        err
+      );
       errors++;
     }
   }
 
-  return { synced, errors };
+  return { synced, skipped, errors };
 }
+
+// ─────────────────────────────────────────────
+// Phase 2: Incremental case sync
+// Compares Oyez case count with our DB count per term.
+// Only fetches case details for cases we don't already have.
+// ─────────────────────────────────────────────
 
 async function syncCasesForTerm(
   term: number
-): Promise<{ synced: number; errors: number }> {
+): Promise<{ synced: number; skipped: number; errors: number }> {
   let synced = 0;
+  let skipped = 0;
   let errors = 0;
 
   const cases = await fetchOyez<OyezCaseListItem[]>(
     `/cases?filter=term:${term}&per_page=100`
   );
-  if (!cases || !Array.isArray(cases)) return { synced: 0, errors: 0 };
+  if (!cases || !Array.isArray(cases)) return { synced: 0, skipped: 0, errors: 0 };
+
+  // Get existing case IDs for this term
+  const existingCases = await prisma.courtCase.findMany({
+    where: { term },
+    select: { oyezId: true, status: true, conclusion: true },
+  });
+  const existingMap = new Map(
+    existingCases.map((c) => [c.oyezId, c])
+  );
 
   for (const c of cases) {
+    const oyezId = `${term}/${c.docket_number}`;
+    const existing = existingMap.get(oyezId);
+
+    // Skip if we already have a fully decided case with a conclusion
+    if (existing?.status === "DECIDED" && existing.conclusion) {
+      skipped++;
+      continue;
+    }
+
     try {
       await sleep(DELAY_MS);
       const detail = await fetchOyez<OyezCaseDetail>(
@@ -254,7 +289,6 @@ async function syncCasesForTerm(
         continue;
       }
 
-      // Parse dates from timeline
       const arguedEvent = detail.timeline?.find((t) => t.event === "Argued");
       const decidedEvent = detail.timeline?.find((t) => t.event === "Decided");
       const arguedDate = arguedEvent?.dates?.[0]?.date
@@ -268,8 +302,6 @@ async function syncCasesForTerm(
       let status: "GRANTED" | "ARGUED" | "DECIDED" = "GRANTED";
       if (decidedDate) status = "DECIDED";
       else if (arguedDate) status = "ARGUED";
-
-      const oyezId = `${term}/${detail.docket_number}`;
 
       const courtCase = await prisma.courtCase.upsert({
         where: { oyezId },
@@ -344,20 +376,38 @@ async function syncCasesForTerm(
     }
   }
 
-  return { synced, errors };
+  return { synced, skipped, errors };
 }
+
+// ─────────────────────────────────────────────
+// Phase 3: Incremental financial disclosure sync
+// Checks if the number of disclosures has changed before re-fetching
+// gifts and reimbursements.
+// ─────────────────────────────────────────────
 
 async function syncFinancialDisclosures(): Promise<{
   synced: number;
+  skipped: number;
   errors: number;
 }> {
   let synced = 0;
+  let skipped = 0;
   let errors = 0;
 
-  // Get all active justices that have a CourtListener ID
   const justices = await prisma.justice.findMany({
     where: { isActive: true },
-    select: { id: true, courtListenerId: true, lastName: true },
+    select: {
+      id: true,
+      courtListenerId: true,
+      lastName: true,
+      _count: {
+        select: {
+          financialDisclosures: true,
+          gifts: true,
+          reimbursements: true,
+        },
+      },
+    },
   });
 
   for (const justice of justices) {
@@ -366,13 +416,34 @@ async function syncFinancialDisclosures(): Promise<{
     try {
       await sleep(DELAY_MS);
 
-      // Fetch disclosures
+      // Check disclosure count from CourtListener
       const disclosures = await fetchCL<CLPaginatedResponse<CLDisclosure>>(
         `/financial-disclosures/?person=${justice.courtListenerId}&order_by=-year`
       );
 
       if (!disclosures?.results) continue;
 
+      // Compare remote count vs local count — skip if unchanged
+      const remoteDisclosureCount = disclosures.count;
+      const localDisclosureCount = justice._count.financialDisclosures;
+
+      if (remoteDisclosureCount === localDisclosureCount) {
+        // Also quick-check gifts count
+        const giftsCheck = await fetchCL<CLPaginatedResponse<CLGift>>(
+          `/gifts/?financial_disclosure__person=${justice.courtListenerId}`
+        );
+        if (giftsCheck && giftsCheck.count === justice._count.gifts) {
+          skipped++;
+          continue; // No new disclosures or gifts
+        }
+      }
+
+      // New disclosures found — sync everything for this justice
+      console.log(
+        `[sync-scotus] New disclosures for ${justice.lastName}, syncing...`
+      );
+
+      // Upsert disclosures
       for (const d of disclosures.results.slice(0, 5)) {
         await prisma.justiceFinancialDisclosure.upsert({
           where: {
@@ -388,44 +459,43 @@ async function syncFinancialDisclosures(): Promise<{
             pdfUrl: d.filepath ?? null,
             isAmended: d.is_amended,
           },
-          update: {
-            pdfUrl: d.filepath ?? null,
-          },
+          update: { pdfUrl: d.filepath ?? null },
         });
       }
 
-      // Fetch gifts
+      // Clear and re-sync gifts (idempotent)
+      await prisma.justiceGift.deleteMany({
+        where: { justiceId: justice.id },
+      });
       await sleep(DELAY_MS);
       const gifts = await fetchCL<CLPaginatedResponse<CLGift>>(
         `/gifts/?financial_disclosure__person=${justice.courtListenerId}`
       );
-
       if (gifts?.results) {
         for (const g of gifts.results) {
-          // Extract year from disclosure URL or use current
-          const year = new Date().getFullYear();
           await prisma.justiceGift.create({
             data: {
               justiceId: justice.id,
               source: g.source,
               description: g.description,
               value: g.value || null,
-              year,
+              year: new Date().getFullYear(),
               isRedacted: g.redacted,
             },
           });
         }
       }
 
-      // Fetch reimbursements (private jets, luxury trips, etc.)
+      // Clear and re-sync reimbursements
+      await prisma.justiceReimbursement.deleteMany({
+        where: { justiceId: justice.id },
+      });
       await sleep(DELAY_MS);
       const reimbs = await fetchCL<CLPaginatedResponse<CLReimbursement>>(
         `/reimbursements/?financial_disclosure__person=${justice.courtListenerId}`
       );
-
       if (reimbs?.results) {
         for (const r of reimbs.results) {
-          const year = new Date().getFullYear();
           await prisma.justiceReimbursement.create({
             data: {
               justiceId: justice.id,
@@ -433,7 +503,7 @@ async function syncFinancialDisclosures(): Promise<{
               location: r.location || null,
               purpose: r.purpose || null,
               itemsPaid: r.items_paid_or_provided || null,
-              year,
+              year: new Date().getFullYear(),
               isRedacted: r.redacted,
             },
           });
@@ -450,7 +520,7 @@ async function syncFinancialDisclosures(): Promise<{
     }
   }
 
-  return { synced, errors };
+  return { synced, skipped, errors };
 }
 
 // ─────────────────────────────────────────────
@@ -459,39 +529,42 @@ async function syncFinancialDisclosures(): Promise<{
 
 export async function GET() {
   try {
-    console.log("[sync-scotus] Starting SCOTUS sync...");
+    console.log("[sync-scotus] Starting incremental SCOTUS sync...");
 
-    // Phase 1: Sync justices
-    console.log("[sync-scotus] Syncing justices from Oyez...");
+    // Phase 1: Justices (skip if recently synced)
     const justiceResult = await syncJustices();
     console.log(
-      `[sync-scotus] Justices: ${justiceResult.synced} synced, ${justiceResult.errors} errors`
+      `[sync-scotus] Justices: ${justiceResult.synced} updated, ${justiceResult.skipped} skipped, ${justiceResult.errors} errors`
     );
 
-    // Phase 2: Sync cases for recent terms
+    // Phase 2: Cases (skip fully decided cases, only fetch new/pending)
     let totalCases = 0;
+    let totalSkipped = 0;
     let totalCaseErrors = 0;
     for (const term of TERMS_TO_SYNC) {
-      console.log(`[sync-scotus] Syncing cases for term ${term}...`);
-      const caseResult = await syncCasesForTerm(term);
-      totalCases += caseResult.synced;
-      totalCaseErrors += caseResult.errors;
+      const r = await syncCasesForTerm(term);
+      totalCases += r.synced;
+      totalSkipped += r.skipped;
+      totalCaseErrors += r.errors;
       console.log(
-        `[sync-scotus] Term ${term}: ${caseResult.synced} cases synced, ${caseResult.errors} errors`
+        `[sync-scotus] Term ${term}: ${r.synced} updated, ${r.skipped} skipped, ${r.errors} errors`
       );
     }
 
-    // Phase 3: Sync financial disclosures from CourtListener
-    console.log("[sync-scotus] Syncing financial disclosures...");
+    // Phase 3: Financial disclosures (skip justices with no new disclosures)
     const disclosureResult = await syncFinancialDisclosures();
     console.log(
-      `[sync-scotus] Disclosures: ${disclosureResult.synced} justices synced, ${disclosureResult.errors} errors`
+      `[sync-scotus] Disclosures: ${disclosureResult.synced} updated, ${disclosureResult.skipped} skipped, ${disclosureResult.errors} errors`
     );
 
     return Response.json({
       success: true,
       justices: justiceResult,
-      cases: { synced: totalCases, errors: totalCaseErrors },
+      cases: {
+        synced: totalCases,
+        skipped: totalSkipped,
+        errors: totalCaseErrors,
+      },
       disclosures: disclosureResult,
     });
   } catch (error) {

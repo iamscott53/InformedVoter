@@ -232,3 +232,50 @@ The consistency_score (0-100) reflects how consistently their votes align with t
 
   return extractJson<CandidatePolicyAnalysis>(getTextContent(message));
 }
+
+// ─────────────────────────────────────────────
+// analyzeCourtCase
+// ─────────────────────────────────────────────
+
+export interface CourtCaseAnalysis {
+  plain_english_summary: string;
+  impact_analysis: string;
+}
+
+/**
+ * Produce a plain-English summary and impact analysis of a SCOTUS case.
+ */
+export async function analyzeCourtCase(
+  caseName: string,
+  question: string,
+  facts: string,
+  conclusion: string
+): Promise<CourtCaseAnalysis> {
+  const prompt = `You are a nonpartisan legal analyst writing for everyday Americans who are not lawyers.
+Summarize this Supreme Court case in plain English so anyone can understand it.
+
+Case: ${caseName}
+
+Question Presented:
+${question.slice(0, 3000)}
+
+Facts of the Case:
+${facts.slice(0, 5000)}
+
+Conclusion/Ruling:
+${conclusion.slice(0, 5000)}
+
+Return valid JSON matching this schema exactly:
+{
+  "plain_english_summary": "3-5 sentence summary that anyone can understand. Avoid legal jargon entirely. Explain what the case is about, what the court decided, and why it matters. Write as if explaining to a smart friend who doesn't follow the news.",
+  "impact_analysis": "2-3 sentences explaining the real-world impact. How does this ruling affect ordinary people? What changes because of this decision? Be specific and practical."
+}`;
+
+  const message = await anthropic.messages.create({
+    model: "claude-haiku-4-5",
+    max_tokens: 1024,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  return extractJson<CourtCaseAnalysis>(getTextContent(message));
+}
