@@ -28,15 +28,19 @@ export async function generateMetadata({
   params,
 }: JusticePageProps): Promise<Metadata> {
   const { slug } = await params;
-  const justice = await prisma.justice.findUnique({
-    where: { oyezIdentifier: slug },
-    select: { name: true, roleTitle: true },
-  });
-  if (!justice) return { title: "Justice Not Found" };
-  return {
-    title: `${justice.name} — ${justice.roleTitle ?? "Supreme Court Justice"}`,
-    description: `Voting record, financial disclosures, and profile for ${justice.name}.`,
-  };
+  try {
+    const justice = await prisma.justice.findUnique({
+      where: { oyezIdentifier: slug },
+      select: { name: true, roleTitle: true },
+    });
+    if (!justice) return { title: "Justice Not Found" };
+    return {
+      title: `${justice.name} — ${justice.roleTitle ?? "Supreme Court Justice"}`,
+      description: `Voting record, financial disclosures, and profile for ${justice.name}.`,
+    };
+  } catch {
+    return { title: "Justice Not Found" };
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -48,34 +52,39 @@ export default async function JusticeProfilePage({
 }: JusticePageProps) {
   const { slug } = await params;
 
-  const justice = await prisma.justice.findUnique({
-    where: { oyezIdentifier: slug },
-    include: {
-      votes: {
-        include: {
-          courtCase: {
-            select: {
-              id: true,
-              oyezId: true,
-              name: true,
-              docketNumber: true,
-              term: true,
-              dateDecided: true,
-              majorityVotes: true,
-              minorityVotes: true,
-              status: true,
+  let justice;
+  try {
+    justice = await prisma.justice.findUnique({
+      where: { oyezIdentifier: slug },
+      include: {
+        votes: {
+          include: {
+            courtCase: {
+              select: {
+                id: true,
+                oyezId: true,
+                name: true,
+                docketNumber: true,
+                term: true,
+                dateDecided: true,
+                majorityVotes: true,
+                minorityVotes: true,
+                status: true,
+              },
             },
           },
+          orderBy: { courtCase: { dateDecided: "desc" } },
+          take: 50,
         },
-        orderBy: { courtCase: { dateDecided: "desc" } },
-        take: 50,
+        gifts: { orderBy: { year: "desc" }, take: 50 },
+        reimbursements: { orderBy: { year: "desc" }, take: 50 },
+        investments: { orderBy: { year: "desc" }, take: 20 },
+        financialDisclosures: { orderBy: { year: "desc" }, take: 10 },
       },
-      gifts: { orderBy: { year: "desc" }, take: 50 },
-      reimbursements: { orderBy: { year: "desc" }, take: 50 },
-      investments: { orderBy: { year: "desc" }, take: 20 },
-      financialDisclosures: { orderBy: { year: "desc" }, take: 10 },
-    },
-  });
+    });
+  } catch {
+    notFound();
+  }
 
   if (!justice) notFound();
 

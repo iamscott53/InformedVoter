@@ -21,15 +21,19 @@ export async function generateMetadata({
 }: CasePageProps): Promise<Metadata> {
   const { slug } = await params;
   const oyezId = slug.join("/");
-  const courtCase = await prisma.courtCase.findUnique({
-    where: { oyezId },
-    select: { name: true },
-  });
-  if (!courtCase) return { title: "Case Not Found" };
-  return {
-    title: courtCase.name,
-    description: `Supreme Court case: ${courtCase.name}. Read the plain-English summary, vote breakdown, and full analysis.`,
-  };
+  try {
+    const courtCase = await prisma.courtCase.findUnique({
+      where: { oyezId },
+      select: { name: true },
+    });
+    if (!courtCase) return { title: "Case Not Found" };
+    return {
+      title: courtCase.name,
+      description: `Supreme Court case: ${courtCase.name}. Read the plain-English summary, vote breakdown, and full analysis.`,
+    };
+  } catch {
+    return { title: "Case Not Found" };
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -48,24 +52,29 @@ export default async function CaseDetailPage({ params }: CasePageProps) {
   const { slug } = await params;
   const oyezId = slug.join("/"); // e.g. "2024/23-191"
 
-  const courtCase = await prisma.courtCase.findUnique({
-    where: { oyezId },
-    include: {
-      votes: {
-        include: {
-          justice: {
-            select: {
-              id: true,
-              oyezIdentifier: true,
-              name: true,
-              photoUrl: true,
-              roleTitle: true,
+  let courtCase;
+  try {
+    courtCase = await prisma.courtCase.findUnique({
+      where: { oyezId },
+      include: {
+        votes: {
+          include: {
+            justice: {
+              select: {
+                id: true,
+                oyezIdentifier: true,
+                name: true,
+                photoUrl: true,
+                roleTitle: true,
+              },
             },
           },
         },
       },
-    },
-  });
+    });
+  } catch {
+    notFound();
+  }
 
   if (!courtCase) notFound();
 

@@ -10,57 +10,26 @@ export const metadata: Metadata = {
 };
 
 export default async function JudicialPage() {
-  const [activeJustices, recentCases, totalGifts] = await Promise.all([
-    prisma.justice.findMany({
-      where: { isActive: true },
-      select: {
-        id: true,
-        oyezIdentifier: true,
-        name: true,
-        photoUrl: true,
-        roleTitle: true,
-        appointingPresident: true,
-        dateStart: true,
-        ideologyScore: true,
-        _count: { select: { gifts: true, reimbursements: true } },
-      },
-      orderBy: { dateStart: "asc" },
-    }),
-    prisma.courtCase.findMany({
-      where: { status: "DECIDED" },
-      select: {
-        id: true,
-        oyezId: true,
-        name: true,
-        docketNumber: true,
-        term: true,
-        dateDecided: true,
-        majorityVotes: true,
-        minorityVotes: true,
-        aiSummary: true,
-        conclusion: true,
-        status: true,
-      },
-      orderBy: { dateDecided: "desc" },
-      take: 10,
-    }),
-    prisma.justiceGift.count(),
-  ]);
+  let activeJustices: Awaited<ReturnType<typeof fetchJustices>> = [];
+  let recentCases: Awaited<ReturnType<typeof fetchRecentCases>> = [];
+  let pendingCases: Awaited<ReturnType<typeof fetchPendingCases>> = [];
+  let totalGifts = 0;
 
-  const pendingCases = await prisma.courtCase.findMany({
-    where: { status: { in: ["GRANTED", "ARGUED"] } },
-    select: {
-      id: true,
-      oyezId: true,
-      name: true,
-      docketNumber: true,
-      term: true,
-      dateArgued: true,
-      status: true,
-    },
-    orderBy: { dateArgued: "desc" },
-    take: 10,
-  });
+  try {
+    [activeJustices, recentCases, totalGifts] = await Promise.all([
+      fetchJustices(),
+      fetchRecentCases(),
+      prisma.justiceGift.count(),
+    ]);
+  } catch {
+    // Tables may not exist yet — render page with empty data
+  }
+
+  try {
+    pendingCases = await fetchPendingCases();
+  } catch {
+    // Table may not exist yet
+  }
 
   return (
     <div className="flex flex-col">
@@ -99,47 +68,53 @@ export default async function JudicialPage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {activeJustices.map((j) => {
-              const totalPerks = j._count.gifts + j._count.reimbursements;
-              return (
-                <Link
-                  key={j.id}
-                  href={`/judicial/justices/${j.oyezIdentifier}`}
-                  className="group flex items-start gap-4 p-5 rounded-xl border border-gray-200
-                             hover:border-[#1B2A4A]/30 hover:shadow-lg transition-all"
-                >
-                  {j.photoUrl ? (
-                    <img
-                      src={j.photoUrl}
-                      alt={j.name}
-                      className="w-14 h-14 rounded-full object-cover bg-gray-200"
-                    />
-                  ) : (
-                    <div className="w-14 h-14 rounded-full bg-[#1B2A4A]/10 flex items-center justify-center text-lg font-bold text-[#1B2A4A]">
-                      {j.name.charAt(0)}
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold text-[#1B2A4A] group-hover:underline">
-                      {j.name}
-                    </h3>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {j.roleTitle ?? "Associate Justice"}
-                      {j.appointingPresident && (
-                        <> · Appointed by {j.appointingPresident}</>
-                      )}
-                    </p>
-                    {totalPerks > 0 && (
-                      <p className="text-xs text-amber-600 font-medium mt-1">
-                        {totalPerks} reported gift{totalPerks !== 1 ? "s" : ""} / trip{totalPerks !== 1 ? "s" : ""}
-                      </p>
+          {activeJustices.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {activeJustices.map((j) => {
+                const totalPerks = j._count.gifts + j._count.reimbursements;
+                return (
+                  <Link
+                    key={j.id}
+                    href={`/judicial/justices/${j.oyezIdentifier}`}
+                    className="group flex items-start gap-4 p-5 rounded-xl border border-gray-200
+                               hover:border-[#1B2A4A]/30 hover:shadow-lg transition-all"
+                  >
+                    {j.photoUrl ? (
+                      <img
+                        src={j.photoUrl}
+                        alt={j.name}
+                        className="w-14 h-14 rounded-full object-cover bg-gray-200"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full bg-[#1B2A4A]/10 flex items-center justify-center text-lg font-bold text-[#1B2A4A]">
+                        {j.name.charAt(0)}
+                      </div>
                     )}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-semibold text-[#1B2A4A] group-hover:underline">
+                        {j.name}
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {j.roleTitle ?? "Associate Justice"}
+                        {j.appointingPresident && (
+                          <> · Appointed by {j.appointingPresident}</>
+                        )}
+                      </p>
+                      {totalPerks > 0 && (
+                        <p className="text-xs text-amber-600 font-medium mt-1">
+                          {totalPerks} reported gift{totalPerks !== 1 ? "s" : ""} / trip{totalPerks !== 1 ? "s" : ""}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-gray-400 text-sm text-center py-8">
+              No justice data synced yet. Run the sync-scotus cron job to import data.
+            </p>
+          )}
         </div>
       </section>
 
@@ -242,4 +217,62 @@ export default async function JudicialPage() {
       </section>
     </div>
   );
+}
+
+// ── Data fetchers ──
+
+function fetchJustices() {
+  return prisma.justice.findMany({
+    where: { isActive: true },
+    select: {
+      id: true,
+      oyezIdentifier: true,
+      name: true,
+      photoUrl: true,
+      roleTitle: true,
+      appointingPresident: true,
+      dateStart: true,
+      ideologyScore: true,
+      _count: { select: { gifts: true, reimbursements: true } },
+    },
+    orderBy: { dateStart: "asc" },
+  });
+}
+
+function fetchRecentCases() {
+  return prisma.courtCase.findMany({
+    where: { status: "DECIDED" },
+    select: {
+      id: true,
+      oyezId: true,
+      name: true,
+      docketNumber: true,
+      term: true,
+      dateDecided: true,
+      majorityVotes: true,
+      minorityVotes: true,
+      aiSummary: true,
+      conclusion: true,
+      status: true,
+    },
+    orderBy: { dateDecided: "desc" },
+    take: 10,
+  });
+}
+
+function fetchPendingCases() {
+  return prisma.courtCase.findMany({
+    where: { status: { in: ["GRANTED", "ARGUED"] } },
+    select: {
+      id: true,
+      oyezId: true,
+      name: true,
+      docketNumber: true,
+      term: true,
+      dateArgued: true,
+      status: true,
+    },
+    orderBy: { dateArgued: "desc" },
+    take: 10,
+  });
 }
