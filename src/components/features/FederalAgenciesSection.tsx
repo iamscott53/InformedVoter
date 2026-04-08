@@ -64,15 +64,17 @@ function AgencyCard({ agency }: { agency: FederalAgency }) {
         <span className="inline-flex items-center gap-1 text-xs font-medium text-[#1B2A4A]/70 group-hover:gap-2 transition-all">
           View details <ArrowRight size={12} />
         </span>
-        <a
-          href={agency.url}
-          target="_blank"
-          rel="noopener noreferrer"
+        <span
+          role="link"
           className="text-xs text-gray-400 hover:text-gray-600 inline-flex items-center gap-1"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            window.open(agency.url, "_blank", "noopener,noreferrer");
+          }}
         >
           Official site <ExternalLink size={10} />
-        </a>
+        </span>
       </div>
     </Link>
   );
