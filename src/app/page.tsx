@@ -42,7 +42,7 @@ export default function HomePage() {
                 100% Nonpartisan · No Ads · No Spin
               </div>
 
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-6">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-6 text-white">
                 Your Government,{" "}
                 <br className="hidden sm:inline" />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-300">
