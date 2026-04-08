@@ -457,3 +457,152 @@ model StatePollingLocator {
 
   state State @relation(fields: [stateId], references: [id])
 }
+
+// ─────────────────────────────────────────────
+// Judicial Branch
+// ─────────────────────────────────────────────
+
+model Justice {
+  id                  Int       @id @default(autoincrement())
+  oyezIdentifier      String    @unique            // e.g. "clarence_thomas"
+  courtListenerId     Int?      @unique            // CourtListener person ID
+  name                String
+  firstName           String
+  lastName            String
+  dateOfBirth         DateTime?
+  placeOfBirth        String?
+  gender              String?
+  photoUrl            String?
+  biography           String?                      // Detailed bio from Oyez
+  lawSchool           String?
+  appointingPresident String?
+  partyOfPresident    String?                       // "Republican" / "Democrat"
+  roleTitle           String?                       // "Chief Justice" / "Associate Justice"
+  dateStart           DateTime?
+  dateEnd             DateTime?                     // null = currently serving
+  isActive            Boolean   @default(true)
+  ideologyScore       Float?                        // Oyez average ideology (neg=liberal, pos=conservative)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  votes               CaseVote[]
+  gifts               JusticeGift[]
+  reimbursements      JusticeReimbursement[]
+  investments         JusticeInvestment[]
+  financialDisclosures JusticeFinancialDisclosure[]
+
+  @@index([isActive])
+  @@index([lastName])
+}
+
+model CourtCase {
+  id                Int       @id @default(autoincrement())
+  oyezId            String    @unique              // e.g. "2024/23-191"
+  name              String                         // e.g. "Trump v. United States"
+  docketNumber      String
+  term              Int                            // SCOTUS term year
+  dateArgued        DateTime?
+  dateDecided       DateTime?
+  question          String?                        // Legal question presented (HTML)
+  factsOfTheCase    String?                        // Narrative facts (HTML)
+  conclusion        String?                        // Opinion summary from Oyez
+  aiSummary         String?                        // Plain-English AI summary
+  aiImpactAnalysis  String?                        // AI analysis of public impact
+  decisionDirection String?                        // "conservative" / "liberal" / "unspecifiable"
+  majorityVotes     Int?
+  minorityVotes     Int?
+  justiaUrl         String?
+  status            CaseStatus @default(GRANTED)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  votes             CaseVote[]
+
+  @@index([term])
+  @@index([status])
+  @@index([dateDecided])
+}
+
+enum CaseStatus {
+  GRANTED               // Cert granted, not yet argued
+  ARGUED                // Oral arguments heard
+  DECIDED               // Opinion issued
+}
+
+model CaseVote {
+  id            Int      @id @default(autoincrement())
+  caseId        Int
+  justiceId     Int
+  voteType      String                             // "majority" / "minority"
+  opinionType   String?                            // "majority" / "dissent" / "concurrence" / "none"
+  ideologyScore Float?                             // Per-vote ideology from Oyez
+
+  courtCase CourtCase @relation(fields: [caseId], references: [id])
+  justice   Justice   @relation(fields: [justiceId], references: [id])
+
+  @@unique([caseId, justiceId])
+  @@index([caseId])
+  @@index([justiceId])
+}
+
+model JusticeFinancialDisclosure {
+  id            Int       @id @default(autoincrement())
+  justiceId     Int
+  year          Int
+  pdfUrl        String?                            // Link to original disclosure PDF
+  isAmended     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+
+  justice       Justice   @relation(fields: [justiceId], references: [id])
+
+  @@unique([justiceId, year, isAmended])
+  @@index([justiceId])
+}
+
+model JusticeGift {
+  id            Int      @id @default(autoincrement())
+  justiceId     Int
+  source        String                             // Who gave the gift (e.g. "Harlan Crow")
+  description   String                             // What was it (e.g. "Private jet travel to Indonesia")
+  value         String?                            // Dollar value or value code
+  year          Int
+  isRedacted    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  justice       Justice  @relation(fields: [justiceId], references: [id])
+
+  @@index([justiceId])
+  @@index([year])
+}
+
+model JusticeReimbursement {
+  id            Int      @id @default(autoincrement())
+  justiceId     Int
+  source        String                             // Who paid (e.g. "Harlan Crow")
+  location      String?                            // Where (e.g. "Dallas, TX")
+  purpose       String?                            // e.g. "Guest of source"
+  itemsPaid     String?                            // e.g. "Transportation, meals and lodging"
+  year          Int
+  isRedacted    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  justice       Justice  @relation(fields: [justiceId], references: [id])
+
+  @@index([justiceId])
+  @@index([year])
+}
+
+model JusticeInvestment {
+  id            Int      @id @default(autoincrement())
+  justiceId     Int
+  description   String                             // Stock/fund name
+  valueCode     String?                            // e.g. "J" ($1,000,001 - $5,000,000)
+  incomeCode    String?                            // Income type code
+  year          Int
+  createdAt     DateTime @default(now())
+
+  justice       Justice  @relation(fields: [justiceId], references: [id])
+
+  @@index([justiceId])
+  @@index([year])
+}

@@ -1,77 +1,83 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Loader2 } from "lucide-react";
+import Image from "next/image";
+import { MapPin, Loader2, Search, ChevronDown } from "lucide-react";
 import { useUserState } from "@/hooks/useUserState";
 
 // ─────────────────────────────────────────────
-// State metadata: abbreviation, full name, label position
+// State metadata
 // ─────────────────────────────────────────────
 
-interface StateInfo {
+interface StateEntry {
   abbr: string;
   name: string;
-  labelX?: number;
-  labelY?: number;
 }
 
-const STATE_INFO: Record<string, StateInfo> = {
-  AL: { abbr: "AL", name: "Alabama", labelX: 743, labelY: 466 },
-  AK: { abbr: "AK", name: "Alaska", labelX: 171, labelY: 573 },
-  AZ: { abbr: "AZ", name: "Arizona", labelX: 224, labelY: 450 },
-  AR: { abbr: "AR", name: "Arkansas", labelX: 640, labelY: 430 },
-  CA: { abbr: "CA", name: "California", labelX: 108, labelY: 360 },
-  CO: { abbr: "CO", name: "Colorado", labelX: 330, labelY: 320 },
-  CT: { abbr: "CT", name: "Connecticut" },
-  DE: { abbr: "DE", name: "Delaware" },
-  FL: { abbr: "FL", name: "Florida", labelX: 810, labelY: 545 },
-  GA: { abbr: "GA", name: "Georgia", labelX: 790, labelY: 460 },
-  HI: { abbr: "HI", name: "Hawaii", labelX: 310, labelY: 575 },
-  ID: { abbr: "ID", name: "Idaho", labelX: 205, labelY: 195 },
-  IL: { abbr: "IL", name: "Illinois", labelX: 670, labelY: 330 },
-  IN: { abbr: "IN", name: "Indiana", labelX: 710, labelY: 320 },
-  IA: { abbr: "IA", name: "Iowa", labelX: 590, labelY: 265 },
-  KS: { abbr: "KS", name: "Kansas", labelX: 490, labelY: 355 },
-  KY: { abbr: "KY", name: "Kentucky", labelX: 750, labelY: 370 },
-  LA: { abbr: "LA", name: "Louisiana", labelX: 650, labelY: 505 },
-  ME: { abbr: "ME", name: "Maine", labelX: 920, labelY: 115 },
-  MD: { abbr: "MD", name: "Maryland" },
-  MA: { abbr: "MA", name: "Massachusetts" },
-  MI: { abbr: "MI", name: "Michigan", labelX: 730, labelY: 230 },
-  MN: { abbr: "MN", name: "Minnesota", labelX: 560, labelY: 165 },
-  MS: { abbr: "MS", name: "Mississippi", labelX: 690, labelY: 470 },
-  MO: { abbr: "MO", name: "Missouri", labelX: 620, labelY: 365 },
-  MT: { abbr: "MT", name: "Montana", labelX: 310, labelY: 130 },
-  NE: { abbr: "NE", name: "Nebraska", labelX: 460, labelY: 280 },
-  NV: { abbr: "NV", name: "Nevada", labelX: 155, labelY: 310 },
-  NH: { abbr: "NH", name: "New Hampshire" },
-  NJ: { abbr: "NJ", name: "New Jersey" },
-  NM: { abbr: "NM", name: "New Mexico", labelX: 305, labelY: 440 },
-  NY: { abbr: "NY", name: "New York", labelX: 870, labelY: 195 },
-  NC: { abbr: "NC", name: "North Carolina", labelX: 835, labelY: 400 },
-  ND: { abbr: "ND", name: "North Dakota", labelX: 440, labelY: 140 },
-  OH: { abbr: "OH", name: "Ohio", labelX: 760, labelY: 290 },
-  OK: { abbr: "OK", name: "Oklahoma", labelX: 510, labelY: 410 },
-  OR: { abbr: "OR", name: "Oregon", labelX: 130, labelY: 155 },
-  PA: { abbr: "PA", name: "Pennsylvania", labelX: 840, labelY: 250 },
-  RI: { abbr: "RI", name: "Rhode Island" },
-  SC: { abbr: "SC", name: "South Carolina", labelX: 825, labelY: 435 },
-  SD: { abbr: "SD", name: "South Dakota", labelX: 440, labelY: 200 },
-  TN: { abbr: "TN", name: "Tennessee", labelX: 740, labelY: 400 },
-  TX: { abbr: "TX", name: "Texas", labelX: 480, labelY: 490 },
-  UT: { abbr: "UT", name: "Utah", labelX: 240, labelY: 310 },
-  VT: { abbr: "VT", name: "Vermont" },
-  VA: { abbr: "VA", name: "Virginia", labelX: 830, labelY: 350 },
-  WA: { abbr: "WA", name: "Washington", labelX: 155, labelY: 90 },
-  WV: { abbr: "WV", name: "West Virginia", labelX: 800, labelY: 330 },
-  WI: { abbr: "WI", name: "Wisconsin", labelX: 630, labelY: 195 },
-  WY: { abbr: "WY", name: "Wyoming", labelX: 320, labelY: 220 },
-  DC: { abbr: "DC", name: "District of Columbia" },
-};
+const STATES: readonly StateEntry[] = [
+  { abbr: "AL", name: "Alabama" },
+  { abbr: "AK", name: "Alaska" },
+  { abbr: "AZ", name: "Arizona" },
+  { abbr: "AR", name: "Arkansas" },
+  { abbr: "CA", name: "California" },
+  { abbr: "CO", name: "Colorado" },
+  { abbr: "CT", name: "Connecticut" },
+  { abbr: "DE", name: "Delaware" },
+  { abbr: "FL", name: "Florida" },
+  { abbr: "GA", name: "Georgia" },
+  { abbr: "HI", name: "Hawaii" },
+  { abbr: "ID", name: "Idaho" },
+  { abbr: "IL", name: "Illinois" },
+  { abbr: "IN", name: "Indiana" },
+  { abbr: "IA", name: "Iowa" },
+  { abbr: "KS", name: "Kansas" },
+  { abbr: "KY", name: "Kentucky" },
+  { abbr: "LA", name: "Louisiana" },
+  { abbr: "ME", name: "Maine" },
+  { abbr: "MD", name: "Maryland" },
+  { abbr: "MA", name: "Massachusetts" },
+  { abbr: "MI", name: "Michigan" },
+  { abbr: "MN", name: "Minnesota" },
+  { abbr: "MS", name: "Mississippi" },
+  { abbr: "MO", name: "Missouri" },
+  { abbr: "MT", name: "Montana" },
+  { abbr: "NE", name: "Nebraska" },
+  { abbr: "NV", name: "Nevada" },
+  { abbr: "NH", name: "New Hampshire" },
+  { abbr: "NJ", name: "New Jersey" },
+  { abbr: "NM", name: "New Mexico" },
+  { abbr: "NY", name: "New York" },
+  { abbr: "NC", name: "North Carolina" },
+  { abbr: "ND", name: "North Dakota" },
+  { abbr: "OH", name: "Ohio" },
+  { abbr: "OK", name: "Oklahoma" },
+  { abbr: "OR", name: "Oregon" },
+  { abbr: "PA", name: "Pennsylvania" },
+  { abbr: "RI", name: "Rhode Island" },
+  { abbr: "SC", name: "South Carolina" },
+  { abbr: "SD", name: "South Dakota" },
+  { abbr: "TN", name: "Tennessee" },
+  { abbr: "TX", name: "Texas" },
+  { abbr: "UT", name: "Utah" },
+  { abbr: "VT", name: "Vermont" },
+  { abbr: "VA", name: "Virginia" },
+  { abbr: "WA", name: "Washington" },
+  { abbr: "WV", name: "West Virginia" },
+  { abbr: "WI", name: "Wisconsin" },
+  { abbr: "WY", name: "Wyoming" },
+  { abbr: "DC", name: "District of Columbia" },
+] as const;
+
+const STATE_BY_ABBR: Record<string, StateEntry> = Object.fromEntries(
+  STATES.map((s) => [s.abbr, s])
+);
 
 // ─────────────────────────────────────────────
-// SVG path data — Albers USA projection
+// SVG overlay paths — transparent clickable regions
+// that sit on top of the map image. These are
+// approximate regions for hit-testing; the image
+// underneath provides the visual.
 // ─────────────────────────────────────────────
 
 const STATE_PATHS: Record<string, string> = {
@@ -128,22 +134,12 @@ const STATE_PATHS: Record<string, string> = {
   DC: "M847,320 L853,315 L856,322 L850,325 L847,320Z",
 };
 
-// States large enough to show an abbreviation label
-const LABELED_STATES = new Set([
-  "AL", "AK", "AZ", "AR", "CA", "CO", "FL", "GA", "ID", "IL", "IN", "IA",
-  "KS", "KY", "LA", "ME", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NM",
-  "NY", "NC", "ND", "OH", "OK", "OR", "PA", "SC", "SD", "TN", "TX", "UT",
-  "VA", "WA", "WI", "WV", "WY", "HI",
-]);
-
 // ─────────────────────────────────────────────
 // Props
 // ─────────────────────────────────────────────
 
 interface USStateMapProps {
-  /** Render on a dark background (hero placement) */
   variant?: "light" | "dark";
-  /** Show the detection banner above the map */
   showDetectionBanner?: boolean;
 }
 
@@ -159,12 +155,36 @@ export default function USStateMap({
   const { userState, setUserState, isLoading } = useUserState();
   const [hoveredState, setHoveredState] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const isDark = variant === "dark";
+  const detectedName = userState ? STATE_BY_ABBR[userState]?.name : null;
+  const hoveredInfo = hoveredState ? STATE_BY_ABBR[hoveredState] : null;
 
-  const handleClick = useCallback(
+  const filteredStates = search.trim()
+    ? STATES.filter(
+        (s) =>
+          s.name.toLowerCase().includes(search.toLowerCase()) ||
+          s.abbr.toLowerCase().includes(search.toLowerCase())
+      )
+    : STATES;
+
+  const handleStateClick = useCallback(
     (abbr: string) => {
       setUserState(abbr);
+      router.push(`/state/${abbr.toLowerCase()}`);
+    },
+    [router, setUserState]
+  );
+
+  const handleDropdownSelect = useCallback(
+    (abbr: string) => {
+      setUserState(abbr);
+      setIsDropdownOpen(false);
+      setSearch("");
       router.push(`/state/${abbr.toLowerCase()}`);
     },
     [router, setUserState]
@@ -174,50 +194,74 @@ export default function USStateMap({
     setTooltipPos({ x: e.clientX, y: e.clientY });
   }, []);
 
-  const hoveredInfo = hoveredState ? STATE_INFO[hoveredState] : null;
-  const detectedName = userState ? STATE_INFO[userState]?.name : null;
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+        setSearch("");
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-  // ── Colors based on variant ──
-  const colorDefault = isDark ? "rgba(255,255,255,0.12)" : "#E5E7EB";
-  const colorHover = isDark ? "rgba(96,165,250,0.6)" : "#6B92C7";
-  const colorSelected = isDark ? "#60A5FA" : "#1B2A4A";
-  const colorStroke = isDark ? "rgba(255,255,255,0.2)" : "#FFFFFF";
-  const colorLabel = isDark ? "rgba(255,255,255,0.7)" : "#374151";
-  const colorLabelSelected = isDark ? "#1E293B" : "#FFFFFF";
+  // Focus search input when dropdown opens
+  useEffect(() => {
+    if (isDropdownOpen && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isDropdownOpen]);
 
   return (
-    <div className="relative w-full" onMouseMove={handleMouseMove}>
-      {/* ── Detection banner ── */}
+    <div className="relative w-full">
+      {/* Detection banner */}
       {showDetectionBanner && (
         <div className="mb-4 text-center">
           {isLoading ? (
             <div className="inline-flex items-center gap-2 text-white/60">
               <Loader2 size={16} className="animate-spin" />
-              <span className="text-sm font-medium">Detecting your state...</span>
+              <span className="text-sm font-medium">
+                Detecting your state...
+              </span>
             </div>
           ) : detectedName ? (
             <div className="inline-flex items-center gap-2">
-              <MapPin size={16} className={isDark ? "text-blue-400" : "text-[#1B2A4A]"} />
-              <span className={`text-sm font-semibold ${isDark ? "text-white" : "text-[#1B2A4A]"}`}>
+              <MapPin
+                size={16}
+                className={isDark ? "text-blue-400" : "text-[#1B2A4A]"}
+              />
+              <span
+                className={`text-sm font-semibold ${isDark ? "text-white" : "text-[#1B2A4A]"}`}
+              >
                 We detected you&apos;re in{" "}
                 <span className={isDark ? "text-blue-300" : "text-blue-600"}>
                   {detectedName}
                 </span>
               </span>
-              <span className={isDark ? "text-white/30" : "text-gray-300"}>|</span>
-              <span className={`text-xs ${isDark ? "text-white/50" : "text-gray-400"}`}>
-                Click any state to change
+              <span className={isDark ? "text-white/30" : "text-gray-300"}>
+                |
+              </span>
+              <span
+                className={`text-xs ${isDark ? "text-white/50" : "text-gray-400"}`}
+              >
+                Click any state on the map or use the selector below
               </span>
             </div>
           ) : (
-            <p className={`text-sm font-medium ${isDark ? "text-white/60" : "text-gray-500"}`}>
-              Click any state to explore its civic information
+            <p
+              className={`text-sm font-medium ${isDark ? "text-white/60" : "text-gray-500"}`}
+            >
+              Click any state on the map to explore civic information
             </p>
           )}
         </div>
       )}
 
-      {/* ── Tooltip ── */}
+      {/* Hover tooltip */}
       {hoveredInfo && (
         <div
           className="fixed z-50 px-3 py-1.5 bg-[#1B2A4A] text-white text-sm font-medium rounded-lg shadow-lg pointer-events-none whitespace-nowrap"
@@ -231,87 +275,179 @@ export default function USStateMap({
         </div>
       )}
 
-      {/* ── SVG Map ── */}
-      <svg
-        viewBox="0 0 960 620"
-        className="w-full h-auto"
-        xmlns="http://www.w3.org/2000/svg"
-        role="img"
-        aria-label="Interactive map of the United States. Click a state to view its information."
+      {/* Interactive map: image with SVG overlay */}
+      <div
+        className="relative rounded-xl overflow-hidden"
+        onMouseMove={handleMouseMove}
       >
-        {/* Glow filter for the selected state */}
-        <defs>
-          <filter id="state-glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="6" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-
-        {/* Render state paths */}
-        {Object.entries(STATE_PATHS).map(([abbr, d]) => {
-          const isSelected = userState === abbr;
-          const isHovered = hoveredState === abbr;
-
-          let fill = colorDefault;
-          if (isSelected) fill = colorSelected;
-          else if (isHovered) fill = colorHover;
-
-          return (
-            <path
-              key={abbr}
-              id={abbr}
-              data-state={abbr}
-              d={d}
-              fill={fill}
-              stroke={colorStroke}
-              strokeWidth={isSelected ? 2.5 : 1.5}
-              filter={isSelected ? "url(#state-glow)" : undefined}
-              className="cursor-pointer transition-colors duration-150"
-              onClick={() => handleClick(abbr)}
-              onMouseEnter={() => setHoveredState(abbr)}
-              onMouseLeave={() => setHoveredState(null)}
-              role="button"
-              aria-label={STATE_INFO[abbr]?.name ?? abbr}
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  handleClick(abbr);
-                }
-              }}
+        <div
+          className={`${isDark ? "bg-white/95" : "bg-white"} rounded-xl p-3 sm:p-4`}
+        >
+          {/* Base map image */}
+          <div className="relative">
+            <Image
+              src="/images/united-states-of-america-map.jpg"
+              alt="Map of the United States of America"
+              width={960}
+              height={620}
+              className="w-full h-auto rounded-lg"
+              priority
             />
-          );
-        })}
 
-        {/* State abbreviation labels */}
-        {Object.entries(STATE_INFO)
-          .filter(
-            ([abbr, info]) =>
-              LABELED_STATES.has(abbr) && info.labelX && info.labelY
-          )
-          .map(([abbr, info]) => {
-            const isSelected = userState === abbr;
-            return (
-              <text
-                key={`label-${abbr}`}
-                x={info.labelX}
-                y={info.labelY}
-                textAnchor="middle"
-                dominantBaseline="central"
-                className="pointer-events-none select-none"
-                fill={isSelected ? colorLabelSelected : colorLabel}
-                fontSize={isSelected ? 13 : 11}
-                fontWeight={isSelected ? 700 : 600}
-                fontFamily="system-ui, -apple-system, sans-serif"
+            {/* SVG overlay — transparent clickable state regions */}
+            <svg
+              viewBox="0 0 960 620"
+              className="absolute inset-0 w-full h-full"
+              xmlns="http://www.w3.org/2000/svg"
+              role="img"
+              aria-label="Interactive map of the United States. Click a state to view its information."
+            >
+              {Object.entries(STATE_PATHS).map(([abbr, d]) => {
+                const isSelected = userState === abbr;
+                const isHovered = hoveredState === abbr;
+
+                let fill = "transparent";
+                let fillOpacity = 0;
+                if (isSelected) {
+                  fill = "#22C55E";
+                  fillOpacity = 0.45;
+                } else if (isHovered) {
+                  fill = "#6B7280";
+                  fillOpacity = 0.35;
+                }
+
+                return (
+                  <path
+                    key={abbr}
+                    d={d}
+                    fill={fill}
+                    fillOpacity={fillOpacity}
+                    stroke={isSelected ? "#16A34A" : isHovered ? "#4B5563" : "transparent"}
+                    strokeWidth={isSelected ? 2.5 : isHovered ? 1.5 : 0}
+                    className="cursor-pointer transition-all duration-150"
+                    onClick={() => handleStateClick(abbr)}
+                    onMouseEnter={() => setHoveredState(abbr)}
+                    onMouseLeave={() => setHoveredState(null)}
+                    role="button"
+                    aria-label={STATE_BY_ABBR[abbr]?.name ?? abbr}
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleStateClick(abbr);
+                      }
+                    }}
+                  />
+                );
+              })}
+            </svg>
+          </div>
+        </div>
+
+        {/* Selected state badge */}
+        {detectedName && !isLoading && (
+          <div className="absolute top-5 right-5">
+            <div className="bg-[#1B2A4A]/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg shadow-lg">
+              <p className="text-[10px] text-white/60 uppercase tracking-wider font-medium">
+                Your State
+              </p>
+              <p className="text-sm font-bold">{detectedName}</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* State selector dropdown — fallback for small states / mobile */}
+      <div className="mt-3" ref={dropdownRef}>
+        <button
+          onClick={() => setIsDropdownOpen((prev) => !prev)}
+          className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+            isDark
+              ? "bg-white/10 hover:bg-white/15 text-white ring-1 ring-white/20"
+              : "bg-white hover:bg-gray-50 text-[#1B2A4A] ring-1 ring-gray-200 shadow-sm"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Search size={14} className="opacity-50" />
+            <span>
+              {userState
+                ? `${STATE_BY_ABBR[userState]?.name ?? userState} — Click to change`
+                : "Or search for your state..."}
+            </span>
+          </div>
+          <ChevronDown
+            size={14}
+            className={`transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
+          />
+        </button>
+
+        {isDropdownOpen && (
+          <div
+            className={`absolute z-50 mt-1 w-full rounded-lg shadow-xl overflow-hidden ${
+              isDark
+                ? "bg-[#1B2A4A] ring-1 ring-white/20"
+                : "bg-white ring-1 ring-gray-200"
+            }`}
+          >
+            <div className="p-2">
+              <div
+                className={`flex items-center gap-2 px-3 py-2 rounded-md ${
+                  isDark ? "bg-white/10" : "bg-gray-100"
+                }`}
               >
-                {abbr}
-              </text>
-            );
-          })}
-      </svg>
+                <Search size={14} className="opacity-40 shrink-0" />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search states..."
+                  className={`w-full bg-transparent text-sm outline-none placeholder:opacity-50 ${
+                    isDark ? "text-white" : "text-gray-900"
+                  }`}
+                />
+              </div>
+            </div>
+
+            <div className="max-h-56 overflow-y-auto px-1 pb-1">
+              {filteredStates.length === 0 ? (
+                <p
+                  className={`text-sm text-center py-4 ${isDark ? "text-white/40" : "text-gray-400"}`}
+                >
+                  No states found
+                </p>
+              ) : (
+                filteredStates.map((state) => {
+                  const isSelected = userState === state.abbr;
+                  return (
+                    <button
+                      key={state.abbr}
+                      onClick={() => handleDropdownSelect(state.abbr)}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-left transition-colors ${
+                        isSelected
+                          ? isDark
+                            ? "bg-blue-500/20 text-blue-300"
+                            : "bg-blue-50 text-blue-700"
+                          : isDark
+                            ? "text-white/80 hover:bg-white/10"
+                            : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      <span className="font-mono text-xs w-6 opacity-60">
+                        {state.abbr}
+                      </span>
+                      <span className="font-medium">{state.name}</span>
+                      {isSelected && (
+                        <MapPin size={14} className="ml-auto opacity-60" />
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
