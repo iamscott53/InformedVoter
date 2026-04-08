@@ -12,22 +12,25 @@ import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: {
-    default: "InformedVoter — Know Your Vote",
+    default: "InformedVoter — Your Government, In Plain English",
     template: "%s | InformedVoter",
   },
   description:
-    "Nonpartisan civic information for every American voter. Research candidates, " +
-    "track legislation, find your polling place, and stay informed — without the spin.",
+    "Understand your government without the jargon. Track Congress, Supreme Court rulings, " +
+    "federal agency budgets, campaign finance, and your local ballot — all in plain English.",
   keywords: [
-    "voter information",
-    "candidates",
-    "bills",
+    "government",
+    "congress",
+    "supreme court",
+    "federal agencies",
     "legislation",
     "elections",
     "nonpartisan",
     "civic information",
-    "US politics",
-    "voting",
+    "campaign finance",
+    "voter information",
+    "judicial branch",
+    "SCOTUS",
   ],
   authors: [{ name: "InformedVoter" }],
   creator: "InformedVoter",
@@ -42,16 +45,16 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://informedvoter.us",
     siteName: "InformedVoter",
-    title: "InformedVoter — Know Your Vote",
+    title: "InformedVoter — Your Government, In Plain English",
     description:
-      "Nonpartisan civic information for every American voter. Research candidates, " +
-      "track legislation, and stay informed.",
+      "Track Congress, the Supreme Court, federal agencies, and your ballot. " +
+      "Complex government made simple — nonpartisan, no spin.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "InformedVoter — Know Your Vote",
+    title: "InformedVoter — Your Government, In Plain English",
     description:
-      "Nonpartisan civic information for every American voter.",
+      "Congress, SCOTUS, federal agencies, and your ballot — all explained in plain English.",
   },
 };
 

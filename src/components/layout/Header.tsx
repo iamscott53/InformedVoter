@@ -84,8 +84,10 @@ export default function Header() {
                 <Landmark size={18} className="text-white" />
               </span>
               <span className="font-serif font-bold text-white text-lg leading-none tracking-tight">
-                Informed
-                <span className="text-[#D69E2E]">Voter</span>
+                Informed<span className="text-[#D69E2E]">Voter</span>
+              </span>
+              <span className="hidden sm:inline text-[10px] text-white/40 font-sans font-medium uppercase tracking-widest leading-none -ml-0.5">
+                Gov in Plain English
               </span>
             </Link>
 

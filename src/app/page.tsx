@@ -13,9 +13,9 @@ import { ExploreStateButton, QuickActions, VoterEssentials } from "@/components/
 // ─────────────────────────────────────────────
 
 export const metadata: Metadata = {
-  title: "InformedVoter — Know Your Vote",
+  title: "InformedVoter — Your Government, In Plain English",
   description:
-    "Nonpartisan civic information for every American voter. Research candidates, track legislation, and stay informed.",
+    "Understand your government without the jargon. Congress, Supreme Court, federal agencies, campaign finance, and your ballot — explained simply.",
 };
 
 // ─────────────────────────────────────────────
@@ -43,19 +43,20 @@ export default function HomePage() {
               </div>
 
               <h1 className="text-4xl sm:text-5xl lg:text-5xl font-bold leading-tight mb-6">
-                Welcome to{" "}
+                Your Government,{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-300">
-                  InformedVoter
+                  In Plain English
                 </span>
               </h1>
 
               <p className="text-xl text-white/80 mb-3 leading-relaxed">
-                Nonpartisan civic information for every American.
+                Powered by{" "}
+                <span className="font-semibold text-white">InformedVoter</span>
               </p>
               <p className="text-base text-white/60 mb-8 max-w-lg leading-relaxed">
-                Research your representatives, track legislation, understand
-                what&apos;s on your ballot, and exercise your rights — all in one
-                place, without partisan spin.
+                Congress, the Supreme Court, federal agencies, campaign finance,
+                and your ballot — all in one place, explained without jargon or
+                partisan spin.
               </p>
 
               <div className="flex flex-wrap gap-4">
@@ -122,8 +123,9 @@ export default function HomePage() {
             Transparent. Nonpartisan. Empowering.
           </h2>
           <p className="text-white/70 max-w-2xl mx-auto text-base leading-relaxed mb-6">
-            InformedVoter presents facts, context, and analysis without partisan framing.
-            We use AI to summarize legislation clearly — and we always show our sources.
+            InformedVoter uses AI to cut through legal jargon and make government
+            accessible — from 500-page bills to Supreme Court rulings to agency budgets.
+            Always sourced, always nonpartisan.
           </p>
           <Link
             href="/about"

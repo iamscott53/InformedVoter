@@ -184,7 +184,7 @@ export default function Navigation({ isOpen, onClose }: NavigationProps) {
                 className="font-serif font-bold text-white text-lg tracking-tight"
                 aria-hidden="true"
               >
-                InformedVoter
+                Informed<span className="text-[#D69E2E]">Voter</span>
               </span>
               <button
                 ref={closeButtonRef}

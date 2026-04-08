@@ -57,8 +57,8 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-sm text-white/55 leading-relaxed max-w-xs">
-              Empowering every American with clear, nonpartisan civic information
-              to make confident, informed decisions at the ballot box.
+              Your government, explained in plain English. Congress, the Supreme Court,
+              federal agencies, and your ballot — nonpartisan and jargon-free.
             </p>
           </div>
 
