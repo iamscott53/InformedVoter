@@ -7,6 +7,8 @@ import { useState, useEffect, useCallback } from "react";
 // ─────────────────────────────────────────────
 
 const COOKIE_NAME = "user-state";
+/** Tracks whether the state was set manually or auto-detected */
+const COOKIE_SOURCE = "user-state-source";
 /** Cookie max-age in seconds — 1 year */
 const COOKIE_MAX_AGE = 365 * 24 * 60 * 60;
 
@@ -24,19 +26,64 @@ function readCookie(name: string): string | null {
 
 function writeCookie(name: string, value: string, maxAge: number): void {
   if (typeof document === "undefined") return;
+  const isHttps =
+    typeof window !== "undefined" && window.location.protocol === "https:";
   document.cookie = [
     `${name}=${encodeURIComponent(value)}`,
     `max-age=${maxAge}`,
     "path=/",
     "SameSite=Lax",
+    ...(isHttps ? ["Secure"] : []),
   ].join("; ");
 }
 
 // ─────────────────────────────────────────────
-// Geolocation → state abbr via a public reverse-geocode service
-// We use the free ipapi.co service as a fallback (no key required)
+// Geolocation → state abbr
+// Primary: browser geolocation (GPS/WiFi) + reverse geocode
+// Fallback: IP-based geolocation via ipapi.co
 // ─────────────────────────────────────────────
 
+/** Use the browser Geolocation API + reverse geocode to detect the US state. */
+async function detectStateFromBrowser(): Promise<string | null> {
+  if (typeof navigator === "undefined" || !navigator.geolocation) return null;
+
+  try {
+    const position = await new Promise<GeolocationPosition>(
+      (resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: false,
+          timeout: 8000,
+          maximumAge: 600_000, // cache position for 10 min
+        });
+      }
+    );
+
+    const { latitude, longitude } = position.coords;
+
+    // Reverse geocode via BigDataCloud (free, no API key required)
+    const res = await fetch(
+      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    if (!res.ok) return null;
+
+    const data = (await res.json()) as {
+      principalSubdivisionCode?: string;
+      countryCode?: string;
+    };
+    if (data.countryCode !== "US") return null;
+
+    // principalSubdivisionCode is like "US-CA"
+    const code = data.principalSubdivisionCode;
+    if (!code || !code.startsWith("US-")) return null;
+    return code.slice(3); // → "CA"
+  } catch {
+    // User denied permission or timeout — fall through to IP fallback
+    return null;
+  }
+}
+
+/** Fallback: detect state from IP address via ipapi.co (no key required). */
 async function detectStateFromIP(): Promise<string | null> {
   try {
     const res = await fetch("https://ipapi.co/json/", {
@@ -71,16 +118,20 @@ export interface UseUserStateReturn {
 // ─────────────────────────────────────────────
 
 export function useUserState(): UseUserStateReturn {
-  // Read cookie synchronously on first render to avoid flash of wrong state
+  // Read cookies synchronously on first render to avoid flash of wrong state
   const initialState = typeof document !== "undefined" ? readCookie(COOKIE_NAME)?.toUpperCase() ?? null : null;
+  const initialSource = typeof document !== "undefined" ? readCookie(COOKIE_SOURCE) : null;
+  const isManual = initialSource === "manual";
+
+  // Show cached state immediately (avoids flash), but re-detect if it was auto-detected
   const [userState, _setUserState] = useState<string | null>(initialState);
-  const [isLoading, setIsLoading] = useState(initialState === null);
+  const [isLoading, setIsLoading] = useState(!isManual && initialState === null);
   const [isGeolocated, setIsGeolocated] = useState(false);
 
-  // On mount: if no cookie, attempt IP geolocation
+  // On mount: detect state unless user manually chose one
   useEffect(() => {
-    // If we already have a state from the cookie, no need to geolocate
-    if (userState) {
+    // If user manually selected their state, trust it
+    if (isManual) {
       setIsLoading(false);
       return;
     }
@@ -88,11 +139,14 @@ export function useUserState(): UseUserStateReturn {
     let cancelled = false;
 
     async function init() {
-      const detected = await detectStateFromIP();
+      // Try accurate browser geolocation first, then fall back to IP
+      const detected =
+        (await detectStateFromBrowser()) ?? (await detectStateFromIP());
       if (!cancelled) {
         if (detected) {
           const abbr = detected.toUpperCase();
           writeCookie(COOKIE_NAME, abbr, COOKIE_MAX_AGE);
+          writeCookie(COOKIE_SOURCE, "auto", COOKIE_MAX_AGE);
           _setUserState(abbr);
           setIsGeolocated(true);
         }
@@ -109,6 +163,7 @@ export function useUserState(): UseUserStateReturn {
   const setUserState = useCallback((abbr: string) => {
     const normalized = abbr.toUpperCase();
     writeCookie(COOKIE_NAME, normalized, COOKIE_MAX_AGE);
+    writeCookie(COOKIE_SOURCE, "manual", COOKIE_MAX_AGE);
     _setUserState(normalized);
     setIsGeolocated(false);
   }, []);

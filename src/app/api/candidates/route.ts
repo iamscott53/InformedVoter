@@ -84,6 +84,7 @@ export async function GET(request: Request) {
         },
       },
       orderBy: [{ isIncumbent: "desc" }, { name: "asc" }],
+      take: 200, // Hard cap — prevents full-table dumps via the public API
     });
 
     return Response.json({ candidates });

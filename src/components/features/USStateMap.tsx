@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { MapPin, Loader2 } from "lucide-react";
 import { useUserState } from "@/hooks/useUserState";
 
 // ─────────────────────────────────────────────
@@ -70,8 +71,7 @@ const STATE_INFO: Record<string, StateInfo> = {
 };
 
 // ─────────────────────────────────────────────
-// SVG path data for all 50 US states + DC
-// Based on the standard Albers USA projection used by D3.js / Wikimedia
+// SVG path data — Albers USA projection
 // ─────────────────────────────────────────────
 
 const STATE_PATHS: Record<string, string> = {
@@ -128,16 +128,6 @@ const STATE_PATHS: Record<string, string> = {
   DC: "M847,320 L853,315 L856,322 L850,325 L847,320Z",
 };
 
-// ─────────────────────────────────────────────
-// Colors
-// ─────────────────────────────────────────────
-
-const COLOR_DEFAULT = "#E5E7EB";       // light gray
-const COLOR_HOVER = "#6B92C7";         // medium blue
-const COLOR_SELECTED = "#1B2A4A";      // brand navy
-const COLOR_STROKE = "#FFFFFF";        // white borders
-const COLOR_LABEL = "#374151";         // gray-700
-
 // States large enough to show an abbreviation label
 const LABELED_STATES = new Set([
   "AL", "AK", "AZ", "AR", "CA", "CO", "FL", "GA", "ID", "IL", "IN", "IA",
@@ -147,34 +137,87 @@ const LABELED_STATES = new Set([
 ]);
 
 // ─────────────────────────────────────────────
+// Props
+// ─────────────────────────────────────────────
+
+interface USStateMapProps {
+  /** Render on a dark background (hero placement) */
+  variant?: "light" | "dark";
+  /** Show the detection banner above the map */
+  showDetectionBanner?: boolean;
+}
+
+// ─────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────
 
-export default function USStateMap() {
+export default function USStateMap({
+  variant = "light",
+  showDetectionBanner = false,
+}: USStateMapProps) {
   const router = useRouter();
-  const { userState } = useUserState();
+  const { userState, setUserState, isLoading } = useUserState();
   const [hoveredState, setHoveredState] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
 
+  const isDark = variant === "dark";
+
   const handleClick = useCallback(
     (abbr: string) => {
+      setUserState(abbr);
       router.push(`/state/${abbr.toLowerCase()}`);
     },
-    [router]
+    [router, setUserState]
   );
 
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent) => {
-      setTooltipPos({ x: e.clientX, y: e.clientY });
-    },
-    []
-  );
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    setTooltipPos({ x: e.clientX, y: e.clientY });
+  }, []);
 
   const hoveredInfo = hoveredState ? STATE_INFO[hoveredState] : null;
+  const detectedName = userState ? STATE_INFO[userState]?.name : null;
+
+  // ── Colors based on variant ──
+  const colorDefault = isDark ? "rgba(255,255,255,0.12)" : "#E5E7EB";
+  const colorHover = isDark ? "rgba(96,165,250,0.6)" : "#6B92C7";
+  const colorSelected = isDark ? "#60A5FA" : "#1B2A4A";
+  const colorStroke = isDark ? "rgba(255,255,255,0.2)" : "#FFFFFF";
+  const colorLabel = isDark ? "rgba(255,255,255,0.7)" : "#374151";
+  const colorLabelSelected = isDark ? "#1E293B" : "#FFFFFF";
 
   return (
     <div className="relative w-full" onMouseMove={handleMouseMove}>
-      {/* Tooltip */}
+      {/* ── Detection banner ── */}
+      {showDetectionBanner && (
+        <div className="mb-4 text-center">
+          {isLoading ? (
+            <div className="inline-flex items-center gap-2 text-white/60">
+              <Loader2 size={16} className="animate-spin" />
+              <span className="text-sm font-medium">Detecting your state...</span>
+            </div>
+          ) : detectedName ? (
+            <div className="inline-flex items-center gap-2">
+              <MapPin size={16} className={isDark ? "text-blue-400" : "text-[#1B2A4A]"} />
+              <span className={`text-sm font-semibold ${isDark ? "text-white" : "text-[#1B2A4A]"}`}>
+                We detected you&apos;re in{" "}
+                <span className={isDark ? "text-blue-300" : "text-blue-600"}>
+                  {detectedName}
+                </span>
+              </span>
+              <span className={isDark ? "text-white/30" : "text-gray-300"}>|</span>
+              <span className={`text-xs ${isDark ? "text-white/50" : "text-gray-400"}`}>
+                Click any state to change
+              </span>
+            </div>
+          ) : (
+            <p className={`text-sm font-medium ${isDark ? "text-white/60" : "text-gray-500"}`}>
+              Click any state to explore its civic information
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* ── Tooltip ── */}
       {hoveredInfo && (
         <div
           className="fixed z-50 px-3 py-1.5 bg-[#1B2A4A] text-white text-sm font-medium rounded-lg shadow-lg pointer-events-none whitespace-nowrap"
@@ -188,6 +231,7 @@ export default function USStateMap() {
         </div>
       )}
 
+      {/* ── SVG Map ── */}
       <svg
         viewBox="0 0 960 620"
         className="w-full h-auto"
@@ -195,14 +239,25 @@ export default function USStateMap() {
         role="img"
         aria-label="Interactive map of the United States. Click a state to view its information."
       >
+        {/* Glow filter for the selected state */}
+        <defs>
+          <filter id="state-glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="6" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
         {/* Render state paths */}
         {Object.entries(STATE_PATHS).map(([abbr, d]) => {
           const isSelected = userState === abbr;
           const isHovered = hoveredState === abbr;
 
-          let fill = COLOR_DEFAULT;
-          if (isSelected) fill = COLOR_SELECTED;
-          else if (isHovered) fill = COLOR_HOVER;
+          let fill = colorDefault;
+          if (isSelected) fill = colorSelected;
+          else if (isHovered) fill = colorHover;
 
           return (
             <path
@@ -211,8 +266,9 @@ export default function USStateMap() {
               data-state={abbr}
               d={d}
               fill={fill}
-              stroke={COLOR_STROKE}
-              strokeWidth={1.5}
+              stroke={colorStroke}
+              strokeWidth={isSelected ? 2.5 : 1.5}
+              filter={isSelected ? "url(#state-glow)" : undefined}
               className="cursor-pointer transition-colors duration-150"
               onClick={() => handleClick(abbr)}
               onMouseEnter={() => setHoveredState(abbr)}
@@ -230,9 +286,12 @@ export default function USStateMap() {
           );
         })}
 
-        {/* Render state abbreviation labels for larger states */}
+        {/* State abbreviation labels */}
         {Object.entries(STATE_INFO)
-          .filter(([abbr, info]) => LABELED_STATES.has(abbr) && info.labelX && info.labelY)
+          .filter(
+            ([abbr, info]) =>
+              LABELED_STATES.has(abbr) && info.labelX && info.labelY
+          )
           .map(([abbr, info]) => {
             const isSelected = userState === abbr;
             return (
@@ -243,9 +302,9 @@ export default function USStateMap() {
                 textAnchor="middle"
                 dominantBaseline="central"
                 className="pointer-events-none select-none"
-                fill={isSelected ? "#FFFFFF" : COLOR_LABEL}
-                fontSize={11}
-                fontWeight={600}
+                fill={isSelected ? colorLabelSelected : colorLabel}
+                fontSize={isSelected ? 13 : 11}
+                fontWeight={isSelected ? 700 : 600}
                 fontFamily="system-ui, -apple-system, sans-serif"
               >
                 {abbr}
