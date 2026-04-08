@@ -28,6 +28,20 @@ function tooManyRequests(retryAfter: number): NextResponse {
   );
 }
 
+/**
+ * Constant-time string comparison using XOR.
+ * Prevents timing attacks that leak secrets character by character.
+ * Works in Edge Runtime (no Node.js crypto required).
+ */
+function timingSafeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
 // ─────────────────────────────────────────────
 // Middleware
 // ─────────────────────────────────────────────
@@ -42,8 +56,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   if (isProtected) {
     // ── Dev manual trigger ──────────────────────────────────────────────
     // Requires ALLOW_MANUAL_CRON=true explicitly set in .env.
-    // Replaces the old NODE_ENV check which could fire in a misconfigured
-    // staging environment.
+    // NEVER set this in production — it bypasses auth on cron routes.
     if (
       process.env.ALLOW_MANUAL_CRON === "true" &&
       pathname.startsWith("/api/cron/") &&
@@ -52,7 +65,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
       return NextResponse.next();
     }
 
-    // ── Bearer-token auth ───────────────────────────────────────────────
+    // ── Bearer-token auth (timing-safe) ─────────────────────────────────
     const cronSecret = process.env.CRON_SECRET?.trim();
     if (!cronSecret) {
       return NextResponse.json(
@@ -66,7 +79,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
       ? authHeader.slice(7)
       : null;
 
-    if (token !== cronSecret) {
+    if (!token || !timingSafeCompare(token, cronSecret)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

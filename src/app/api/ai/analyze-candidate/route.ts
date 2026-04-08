@@ -74,7 +74,7 @@ export async function POST(request: Request) {
 
     if (!candidate) {
       return Response.json(
-        { error: `Candidate not found: ${id}` },
+        { error: "Candidate not found" },
         { status: 404 }
       );
     }

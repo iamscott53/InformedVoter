@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { verifyCronSecret } from "@/lib/auth";
 
 // ─────────────────────────────────────────────
 // GET /api/cron/sync-scotus
@@ -580,8 +581,13 @@ async function syncFinancialDisclosures(): Promise<{
 // ─────────────────────────────────────────────
 
 export async function GET(request: Request) {
+  // Defense-in-depth: verify auth even though middleware should catch it
+  if (!verifyCronSecret(request)) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
-    // Allow ?force=true to bypass the schedule gate
+    // Allow ?force=true to bypass the schedule gate (auth already verified above)
     const { searchParams } = new URL(request.url);
     const force = searchParams.get("force") === "true";
 

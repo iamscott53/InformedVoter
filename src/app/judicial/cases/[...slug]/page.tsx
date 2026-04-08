@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Scale, Users, ExternalLink } from "lucide-react";
 import { prisma } from "@/lib/db";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 // ─────────────────────────────────────────────
 // Types
@@ -301,7 +302,7 @@ export default async function CaseDetailPage({ params }: CasePageProps) {
             </h2>
             <div
               className="prose prose-sm prose-gray max-w-none"
-              dangerouslySetInnerHTML={{ __html: courtCase.question }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(courtCase.question) }}
             />
           </div>
         </section>
@@ -316,7 +317,7 @@ export default async function CaseDetailPage({ params }: CasePageProps) {
             </h2>
             <div
               className="prose prose-sm prose-gray max-w-none"
-              dangerouslySetInnerHTML={{ __html: courtCase.factsOfTheCase }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(courtCase.factsOfTheCase) }}
             />
           </div>
         </section>
@@ -331,7 +332,7 @@ export default async function CaseDetailPage({ params }: CasePageProps) {
             </h2>
             <div
               className="prose prose-sm prose-gray max-w-none"
-              dangerouslySetInnerHTML={{ __html: courtCase.conclusion }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(courtCase.conclusion) }}
             />
           </div>
         </section>

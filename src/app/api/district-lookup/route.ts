@@ -45,6 +45,13 @@ export async function GET(request: Request) {
       );
     }
 
+    if (address.length > 500) {
+      return Response.json(
+        { error: "Address is too long (max 500 characters)" },
+        { status: 400 }
+      );
+    }
+
     const apiKey = process.env.GOOGLE_CIVIC_API_KEY;
     if (!apiKey) {
       return Response.json(

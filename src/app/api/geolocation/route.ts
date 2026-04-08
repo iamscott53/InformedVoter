@@ -32,18 +32,21 @@ async function detectStateInfoFromIP(
   }
 
   try {
-    const url = `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,message,countryCode,region,regionName`;
+    const url = `https://ipapi.co/${encodeURIComponent(ip)}/json/`;
     const res = await fetch(url, { next: { revalidate: 3600 } });
 
     if (!res.ok) return null;
 
-    const data: IpApiFullResponse = await res.json();
+    const data = (await res.json()) as {
+      region_code?: string;
+      region?: string;
+      country_code?: string;
+    };
 
-    if (data.status !== "success") return null;
-    if (data.countryCode !== "US") return null;
-    if (!data.region || !data.regionName) return null;
+    if (data.country_code !== "US") return null;
+    if (!data.region_code || !data.region) return null;
 
-    return { state: data.region, stateName: data.regionName };
+    return { state: data.region_code, stateName: data.region };
   } catch {
     return null;
   }

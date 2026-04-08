@@ -21,18 +21,15 @@ export async function detectStateFromIP(ip: string): Promise<string | null> {
   }
 
   try {
-    const url = `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,message,countryCode,region,regionName`;
+    const url = `https://ipapi.co/${encodeURIComponent(ip)}/json/`;
     const res = await fetch(url, { next: { revalidate: 3600 } });
 
     if (!res.ok) return null;
 
-    const data: IpApiResponse = await res.json();
+    const data = (await res.json()) as { region_code?: string; country_code?: string };
 
-    if (data.status !== "success") return null;
-    if (data.countryCode !== "US") return null;
-
-    // Return the two-letter abbreviation when available, else the full region name
-    return data.region ?? data.regionName ?? null;
+    if (data.country_code !== "US") return null;
+    return data.region_code ?? null;
   } catch {
     // Network error or JSON parse failure — fail gracefully
     return null;

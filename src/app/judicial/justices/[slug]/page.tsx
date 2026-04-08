@@ -11,6 +11,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { prisma } from "@/lib/db";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 // ─────────────────────────────────────────────
 // Types
@@ -410,7 +411,7 @@ export default async function JusticeProfilePage({
             </h2>
             <div
               className="prose prose-sm prose-gray max-w-none"
-              dangerouslySetInnerHTML={{ __html: justice.biography }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(justice.biography) }}
             />
           </div>
         </section>

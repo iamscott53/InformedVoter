@@ -482,7 +482,7 @@ export async function GET(request: Request) {
     return Response.json(
       {
         error: "Sync failed",
-        detail: error instanceof Error ? error.message : String(error),
+        detail: "Check server logs for details",
         elapsedSeconds: parseFloat(elapsed),
       },
       { status: 500 }

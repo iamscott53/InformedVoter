@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     });
 
     if (!bill) {
-      return Response.json({ error: `Bill not found: ${id}` }, { status: 404 });
+      return Response.json({ error: "Bill not found" }, { status: 404 });
     }
 
     // Build the text to send to Claude.

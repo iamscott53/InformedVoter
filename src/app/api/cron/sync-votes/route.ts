@@ -120,7 +120,22 @@ interface MemberVote {
   vote: string;
 }
 
+const ALLOWED_XML_HOSTS = ["clerk.house.gov", "www.clerk.house.gov"];
+
+function isAllowedXmlUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" && ALLOWED_XML_HOSTS.includes(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
 async function fetchMemberVotesFromXml(xmlUrl: string): Promise<MemberVote[]> {
+  if (!isAllowedXmlUrl(xmlUrl)) {
+    console.warn(`[sync-votes] Blocked fetch to untrusted host: ${xmlUrl}`);
+    return [];
+  }
   const res = await fetch(xmlUrl, { cache: "no-store" });
   if (!res.ok) return [];
 
@@ -253,7 +268,7 @@ export async function GET(request: Request) {
     return Response.json(
       {
         error: "Sync failed",
-        detail: error instanceof Error ? error.message : String(error),
+        detail: "Check server logs for details",
         elapsedSeconds: parseFloat(elapsed),
       },
       { status: 500 }

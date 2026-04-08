@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { analyzeCourtCase } from "@/lib/ai/claude-client";
+import { verifyCronSecret } from "@/lib/auth";
 
 // ─────────────────────────────────────────────
 // GET /api/cron/analyze-cases
@@ -19,7 +20,11 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, "").trim();
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!verifyCronSecret(request)) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const cases = await prisma.courtCase.findMany({
       where: {

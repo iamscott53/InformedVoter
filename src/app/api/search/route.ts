@@ -20,9 +20,9 @@ export async function GET(request: Request) {
       );
     }
 
-    if (q.length < 2) {
+    if (q.length < 2 || q.length > 200) {
       return Response.json(
-        { error: "Query must be at least 2 characters" },
+        { error: "Query must be between 2 and 200 characters" },
         { status: 400 }
       );
     }
