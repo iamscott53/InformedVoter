@@ -95,13 +95,25 @@ p {
 }
 
 a {
-  color: var(--civic-blue);
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  color: inherit;
+  text-decoration: none;
   transition: color 0.15s ease;
 }
 
-a:hover {
+/* Only underline links inside body text (paragraphs, lists, etc.) */
+p a,
+li a,
+td a,
+.prose a {
+  color: var(--civic-blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+p a:hover,
+li a:hover,
+td a:hover,
+.prose a:hover {
   color: var(--civic-blue-light);
 }
 
