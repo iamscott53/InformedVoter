@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { ChevronRight, User, ExternalLink, TrendingUp } from "lucide-react";
 import PartyBadge from "@/components/ui/PartyBadge";
 import PolicyAccordion from "@/components/features/PolicyAccordion";
@@ -102,7 +103,7 @@ export default async function SenatorsPage({
                         <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center shrink-0 ring-2 ring-gray-100 overflow-hidden">
                           {senator.photoUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={senator.photoUrl} alt={senator.name} className="w-full h-full object-cover" />
+                            <Image src={senator.photoUrl} alt={senator.name} width={96} height={96} className="w-full h-full object-cover" />
                           ) : (
                             <User size={36} className="text-gray-400" />
                           )}

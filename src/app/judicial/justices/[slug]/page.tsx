@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
@@ -126,9 +127,11 @@ export default async function JusticeProfilePage({
 
           <div className="flex items-start gap-6">
             {justice.photoUrl ? (
-              <img
+              <Image
                 src={justice.photoUrl}
                 alt={justice.name}
+                width={96}
+                height={96}
                 className="w-24 h-24 rounded-xl object-cover bg-white/10"
               />
             ) : (

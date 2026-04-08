@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight, ShieldCheck } from "lucide-react";
 
+export const revalidate = 86400;
+
 export const metadata: Metadata = {
   title: "Privacy Policy — InformedVoter",
   description:

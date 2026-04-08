@@ -5,6 +5,7 @@ import Providers from "./providers";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import type { ReactNode } from "react";
+import { SiteJsonLd } from "@/components/seo/JsonLd";
 
 // ─────────────────────────────────────────────
 // Metadata
@@ -35,6 +36,8 @@ export const metadata: Metadata = {
   authors: [{ name: "InformedVoter" }],
   creator: "InformedVoter",
   publisher: "InformedVoter",
+  metadataBase: new URL("https://informedvoter.us"),
+  alternates: { canonical: "/" },
   robots: {
     index: true,
     follow: true,
@@ -75,6 +78,9 @@ interface RootLayoutProps {
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <SiteJsonLd />
+      </head>
       <body className="min-h-screen flex flex-col bg-gray-50 text-gray-800 antialiased">
         <Providers>
           {/* Skip-to-main-content for accessibility */}

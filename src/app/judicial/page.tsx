@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { Scale, Users, Gavel, ArrowRight } from "lucide-react";
 import { prisma } from "@/lib/db";
 
@@ -80,9 +81,11 @@ export default async function JudicialPage() {
                                hover:border-[#1B2A4A]/30 hover:shadow-lg transition-all"
                   >
                     {j.photoUrl ? (
-                      <img
+                      <Image
                         src={j.photoUrl}
                         alt={j.name}
+                        width={56}
+                        height={56}
                         className="w-14 h-14 rounded-full object-cover bg-gray-200"
                       />
                     ) : (

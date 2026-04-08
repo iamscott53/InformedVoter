@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { ChevronRight, User, ExternalLink, TrendingUp } from "lucide-react";
 import PartyBadge from "@/components/ui/PartyBadge";
 import PolicyAccordion from "@/components/features/PolicyAccordion";
@@ -94,7 +95,7 @@ export default async function GovernorPage({
                     <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center ring-2 ring-gray-100 shrink-0 mx-auto sm:mx-0 overflow-hidden">
                       {governor.photoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={governor.photoUrl} alt={governor.name} className="w-full h-full object-cover" />
+                        <Image src={governor.photoUrl} alt={governor.name} width={96} height={96} className="w-full h-full object-cover" />
                       ) : (
                         <User size={56} className="text-gray-300" />
                       )}

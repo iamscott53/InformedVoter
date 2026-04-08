@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import AnimatedSection from "@/components/features/AnimatedSection";
 
+export const revalidate = 86400; // ISR: regenerate once per day
+
 export const metadata: Metadata = {
   title: "About InformedVoter",
   description:

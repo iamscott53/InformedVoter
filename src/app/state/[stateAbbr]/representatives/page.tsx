@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { ChevronRight, User } from "lucide-react";
 import PartyBadge from "@/components/ui/PartyBadge";
 import AnimatedSection from "@/components/features/AnimatedSection";
@@ -117,7 +118,7 @@ export default async function RepresentativesPage({
                     <div className="relative bg-gradient-to-br from-gray-100 to-gray-200 h-32 flex items-center justify-center overflow-hidden">
                       {rep.photoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={rep.photoUrl} alt={rep.name} className="w-full h-full object-cover" />
+                        <Image src={rep.photoUrl} alt={rep.name} width={96} height={96} className="w-full h-full object-cover" />
                       ) : (
                         <User size={48} className="text-gray-300" />
                       )}

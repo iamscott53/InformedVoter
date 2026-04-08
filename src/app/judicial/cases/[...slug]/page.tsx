@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Scale, Users, ExternalLink } from "lucide-react";
+import Image from "next/image";
 import { prisma } from "@/lib/db";
 import { sanitizeHtml } from "@/lib/sanitize";
 
@@ -219,9 +220,11 @@ export default async function CaseDetailPage({ params }: CasePageProps) {
                                  hover:shadow-sm transition-shadow"
                     >
                       {v.justice.photoUrl ? (
-                        <img
+                        <Image
                           src={v.justice.photoUrl}
                           alt={v.justice.name}
+                          width={32}
+                          height={32}
                           className="w-8 h-8 rounded-full object-cover"
                         />
                       ) : (

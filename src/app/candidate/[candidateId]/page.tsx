@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ChevronRight, User, Bot, Phone, Globe } from "lucide-react";
 import PartyBadge from "@/components/ui/PartyBadge";
@@ -149,8 +150,7 @@ export default async function CandidatePage({
             {/* Photo */}
             <div className="w-24 h-24 rounded-2xl bg-white/10 flex items-center justify-center ring-2 ring-white/20 shrink-0 overflow-hidden">
               {candidate.photoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={candidate.photoUrl} alt={candidate.name} className="w-full h-full object-cover" />
+                <Image src={candidate.photoUrl} alt={candidate.name} width={96} height={96} className="w-full h-full object-cover" />
               ) : (
                 <User size={44} className="text-white/40" />
               )}

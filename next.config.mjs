@@ -55,6 +55,14 @@ const nextConfig = {
         protocol: "https",
         hostname: "bioguide.congress.gov",
       },
+      {
+        protocol: "https",
+        hostname: "*.oyez.org",
+      },
+      {
+        protocol: "https",
+        hostname: "oyez.org",
+      },
     ],
   },
 };
