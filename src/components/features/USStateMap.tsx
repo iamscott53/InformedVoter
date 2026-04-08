@@ -24,16 +24,10 @@ const STATES_SORTED = Object.values(US_STATES).sort((a, b) =>
 );
 
 // ─────────────────────────────────────────────
-// State label positions (approximate centroids)
+// State label centroids (SVG viewBox 0 0 960 600)
 // ─────────────────────────────────────────────
 
-interface LabelPos {
-  x: number;
-  y: number;
-  size?: number;
-}
-
-const STATE_LABELS: Record<string, LabelPos> = {
+const STATE_LABELS: Record<string, { x: number; y: number; size?: number }> = {
   AL: { x: 676, y: 402 },
   AK: { x: 171, y: 553, size: 10 },
   AZ: { x: 265, y: 410 },
@@ -138,7 +132,6 @@ export default function USStateMap({
     setTooltipPos({ x: e.clientX, y: e.clientY });
   }, []);
 
-  // Close dropdown on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (
@@ -153,12 +146,31 @@ export default function USStateMap({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Focus search input when dropdown opens
   useEffect(() => {
     if (isDropdownOpen && inputRef.current) {
       inputRef.current.focus();
     }
   }, [isDropdownOpen]);
+
+  // ── Determine fill/stroke per state ──
+  function getStateStyle(abbr: string) {
+    const isSelected = userState === abbr;
+    const isHovered = hoveredState === abbr;
+
+    if (isSelected) {
+      return { fill: "#22C55E", stroke: "#15803D", strokeWidth: 2.5 };
+    }
+    if (isHovered) {
+      return { fill: "#D1D5DB", stroke: "#374151", strokeWidth: 1.5 };
+    }
+    return { fill: "#FFFFFF", stroke: "#000000", strokeWidth: 1 };
+  }
+
+  function getLabelColor(abbr: string) {
+    if (userState === abbr) return "#FFFFFF";
+    if (hoveredState === abbr) return "#111827";
+    return "#374151";
+  }
 
   return (
     <div className="relative w-full">
@@ -192,7 +204,7 @@ export default function USStateMap({
               <span
                 className={`text-xs ${isDark ? "text-white/50" : "text-gray-400"}`}
               >
-                Click any state on the map or use the selector below
+                Click any state or use the selector below
               </span>
             </div>
           ) : (
@@ -219,57 +231,36 @@ export default function USStateMap({
         </div>
       )}
 
-      {/* Interactive SVG Map styled to match the JPG aesthetic */}
+      {/* ── SVG Map ── */}
       <div
-        className={`rounded-xl overflow-hidden ${isDark ? "bg-[#f0f0f0]" : "bg-[#f0f0f0] shadow-sm ring-1 ring-gray-200"} p-3 sm:p-4`}
+        className="rounded-xl overflow-hidden bg-[#eef1f5] p-4"
         onMouseMove={handleMouseMove}
       >
         <svg
           viewBox="0 0 960 600"
-          className="w-full h-auto block"
+          className="w-full h-auto"
           xmlns="http://www.w3.org/2000/svg"
           role="img"
-          aria-label="Interactive map of the United States. Click a state to view its information."
+          aria-label="Interactive map of the United States"
         >
-          {/* Background matching the JPG style */}
-          <rect x="0" y="0" width="960" height="600" fill="#f0f0f0" />
-
-          {Object.entries(US_STATES).map(([abbr, state]) => {
-            const isSelected = userState === abbr;
-            const isHovered = hoveredState === abbr;
-
-            let fill: string;
-            let stroke: string;
-            let strokeWidth: number;
-
-            if (isSelected) {
-              fill = "#22C55E";
-              stroke = "#15803D";
-              strokeWidth = 2;
-            } else if (isHovered) {
-              fill = "#9CA3AF";
-              stroke = "#4B5563";
-              strokeWidth = 1.2;
-            } else {
-              fill = "#FFFFFF";
-              stroke = "#1a1a1a";
-              strokeWidth = 0.8;
-            }
-
+          {/* State shapes — white fill, black border */}
+          {Object.entries(US_STATES).map(([abbr, stateData]) => {
+            const style = getStateStyle(abbr);
             return (
               <path
                 key={abbr}
-                d={state.d}
-                fill={fill}
-                stroke={stroke}
-                strokeWidth={strokeWidth}
+                d={stateData.d}
+                fill={style.fill}
+                stroke={style.stroke}
+                strokeWidth={style.strokeWidth}
                 strokeLinejoin="round"
-                className="cursor-pointer transition-all duration-150"
+                className="cursor-pointer"
+                style={{ transition: "fill 0.15s ease, stroke 0.15s ease" }}
                 onClick={() => handleStateClick(abbr)}
                 onMouseEnter={() => setHoveredState(abbr)}
                 onMouseLeave={() => setHoveredState(null)}
                 role="button"
-                aria-label={state.name}
+                aria-label={stateData.name}
                 tabIndex={0}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
@@ -282,32 +273,27 @@ export default function USStateMap({
           })}
 
           {/* State abbreviation labels */}
-          {Object.entries(US_STATES).map(([abbr, state]) => {
-            const label = STATE_LABELS[abbr];
-            if (!label) return null;
-            const isSelected = userState === abbr;
-            const isHovered = hoveredState === abbr;
-            return (
-              <text
-                key={`label-${abbr}`}
-                x={label.x}
-                y={label.y}
-                textAnchor="middle"
-                dominantBaseline="central"
-                fill={isSelected ? "#FFFFFF" : isHovered ? "#1f2937" : "#374151"}
-                fontSize={label.size ?? 11}
-                fontWeight={isSelected ? 700 : 600}
-                fontFamily="system-ui, -apple-system, sans-serif"
-                className="pointer-events-none select-none"
-              >
-                {abbr}
-              </text>
-            );
-          })}
+          {Object.entries(STATE_LABELS).map(([abbr, pos]) => (
+            <text
+              key={`lbl-${abbr}`}
+              x={pos.x}
+              y={pos.y}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fill={getLabelColor(abbr)}
+              fontSize={pos.size ?? 11}
+              fontWeight={userState === abbr ? 700 : 600}
+              fontFamily="system-ui, -apple-system, sans-serif"
+              className="pointer-events-none select-none"
+              style={{ transition: "fill 0.15s ease" }}
+            >
+              {abbr}
+            </text>
+          ))}
         </svg>
       </div>
 
-      {/* State selector dropdown — for small states or mobile */}
+      {/* ── State selector dropdown ── */}
       <div className="mt-3" ref={dropdownRef}>
         <button
           onClick={() => setIsDropdownOpen((prev) => !prev)}
@@ -367,12 +353,12 @@ export default function USStateMap({
                   No states found
                 </p>
               ) : (
-                filteredStates.map((state) => {
-                  const isSelected = userState === state.abbr;
+                filteredStates.map((s) => {
+                  const isSelected = userState === s.abbr;
                   return (
                     <button
-                      key={state.abbr}
-                      onClick={() => handleDropdownSelect(state.abbr)}
+                      key={s.abbr}
+                      onClick={() => handleDropdownSelect(s.abbr)}
                       className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm text-left transition-colors ${
                         isSelected
                           ? isDark
@@ -384,9 +370,9 @@ export default function USStateMap({
                       }`}
                     >
                       <span className="font-mono text-xs w-6 opacity-60">
-                        {state.abbr}
+                        {s.abbr}
                       </span>
-                      <span className="font-medium">{state.name}</span>
+                      <span className="font-medium">{s.name}</span>
                       {isSelected && (
                         <MapPin size={14} className="ml-auto opacity-60" />
                       )}
