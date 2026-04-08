@@ -7,6 +7,12 @@ import { prisma } from "@/lib/db";
 //   1. Oyez API — justices (skip if recently synced), cases (skip terms with no new cases)
 //   2. CourtListener API — financial disclosures (skip justices with no new disclosures)
 //
+// Schedule-aware (cron fires hourly, handler decides whether to work):
+//   Oct–May:      Once daily (order lists, occasional opinions)
+//   June 15–30:   Every invocation (opinion dump season)
+//   June 1–14:    Every 6 hours
+//   July–Sept:    Weekly (recess — almost nothing happens)
+//
 // Both APIs are free. CourtListener benefits from a token for higher rate limits.
 // Set COURTLISTENER_API_TOKEN in .env (optional).
 // ─────────────────────────────────────────────
@@ -14,8 +20,54 @@ import { prisma } from "@/lib/db";
 const CURRENT_TERM = new Date().getFullYear();
 const TERMS_TO_SYNC = [CURRENT_TERM, CURRENT_TERM - 1, CURRENT_TERM - 2];
 const DELAY_MS = 400;
-const JUSTICE_REFRESH_DAYS = 30; // Only re-fetch justice details every 30 days
+const JUSTICE_REFRESH_DAYS = 30;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// ─────────────────────────────────────────────
+// SCOTUS-calendar schedule gate
+//
+// Returns the minimum hours between syncs for the current date.
+// The cron fires hourly; this function decides whether enough time
+// has passed since the last successful sync.
+// ─────────────────────────────────────────────
+
+function getSyncIntervalHours(): number {
+  const now = new Date();
+  const month = now.getUTCMonth() + 1; // 1-12
+  const day = now.getUTCDate();
+
+  // June 15-30: opinion dump season — every hour
+  if (month === 6 && day >= 15) return 1;
+
+  // June 1-14: ramping up — every 6 hours
+  if (month === 6) return 6;
+
+  // July-September: recess — weekly
+  if (month >= 7 && month <= 9) return 168; // 7 * 24
+
+  // October-May: regular term — once daily
+  return 24;
+}
+
+/**
+ * Check whether enough time has passed since the last successful sync.
+ * Uses the most recently updated CourtCase as a proxy for "last sync time".
+ */
+async function shouldRunNow(): Promise<boolean> {
+  const intervalHours = getSyncIntervalHours();
+
+  const lastSynced = await prisma.courtCase.findFirst({
+    orderBy: { updatedAt: "desc" },
+    select: { updatedAt: true },
+  });
+
+  if (!lastSynced) return true; // Never synced — always run
+
+  const hoursSinceLast =
+    (Date.now() - lastSynced.updatedAt.getTime()) / (1000 * 60 * 60);
+
+  return hoursSinceLast >= intervalHours;
+}
 
 // ─────────────────────────────────────────────
 // Oyez types
@@ -527,8 +579,27 @@ async function syncFinancialDisclosures(): Promise<{
 // Route handler
 // ─────────────────────────────────────────────
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    // Allow ?force=true to bypass the schedule gate
+    const { searchParams } = new URL(request.url);
+    const force = searchParams.get("force") === "true";
+
+    if (!force) {
+      const ready = await shouldRunNow();
+      if (!ready) {
+        const interval = getSyncIntervalHours();
+        console.log(
+          `[sync-scotus] Skipped — next sync in <${interval}h (current schedule)`
+        );
+        return Response.json({
+          success: true,
+          skipped: true,
+          reason: `Schedule gate: syncing every ${interval}h in the current SCOTUS calendar period`,
+        });
+      }
+    }
+
     console.log("[sync-scotus] Starting incremental SCOTUS sync...");
 
     // Phase 1: Justices (skip if recently synced)
