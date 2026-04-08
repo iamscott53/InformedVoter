@@ -71,7 +71,7 @@ export default function HomePage() {
 
             {/* Right: interactive map */}
             <div>
-              <USStateMap variant="dark" showDetectionBanner />
+              <USStateMap variant="dark" />
             </div>
           </div>
         </div>
