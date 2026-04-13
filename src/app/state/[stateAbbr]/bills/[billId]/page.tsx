@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, AlertTriangle, Bot } from "lucide-react";
+import SubscribeForm from "@/components/features/SubscribeForm";
 import BillStatusBadge from "@/components/ui/BillStatusBadge";
 import BillDetailTabs from "@/components/features/BillDetailTabs";
 import { prisma } from "@/lib/db";
@@ -218,6 +219,15 @@ export default async function BillDetailPage({
       {/* Tab content */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <BillDetailTabs bill={billForTabs} />
+      </div>
+
+      {/* Subscribe CTA */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
+        <SubscribeForm
+          stateAbbr={abbr}
+          heading="Want to know when this bill's status changes?"
+          subtext={`Get notified about ${bill.externalId} and other ${abbr} legislation.`}
+        />
       </div>
     </div>
   );

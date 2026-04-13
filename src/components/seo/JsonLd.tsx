@@ -21,7 +21,7 @@ export function SiteJsonLd() {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "InformedVoter",
-    url: "https://informedvoter.us",
+    url: "https://knowyourgov.us",
     description:
       "Nonpartisan platform that explains U.S. government — Congress, the Supreme Court, federal agencies, and elections — in plain English.",
     sameAs: ["https://github.com/iamscott53/InformedVoter"],
@@ -31,14 +31,14 @@ export function SiteJsonLd() {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: "InformedVoter",
-    url: "https://informedvoter.us",
+    url: "https://knowyourgov.us",
     description:
       "Your government, in plain English. Track Congress, Supreme Court rulings, federal agency budgets, campaign finance, and your local ballot.",
     potentialAction: {
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: "https://informedvoter.us/search?q={search_term_string}",
+        urlTemplate: "https://knowyourgov.us/search?q={search_term_string}",
       },
       "query-input": "required name=search_term_string",
     },

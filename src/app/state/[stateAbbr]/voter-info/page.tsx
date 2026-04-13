@@ -17,6 +17,7 @@ import {
 import AnimatedSection from "@/components/features/AnimatedSection";
 import BallotAddressInput from "@/components/features/BallotAddressInput";
 import { prisma } from "@/lib/db";
+import SubscribeForm from "@/components/features/SubscribeForm";
 
 const VOTER_RIGHTS = [
   {
@@ -434,8 +435,17 @@ export default async function VoterInfoPage({
           </AnimatedSection>
         )}
 
-        {/* ── Section F: Media Literacy ── */}
+        {/* ── Subscribe CTA ── */}
         <AnimatedSection delay={0.25}>
+          <SubscribeForm
+            stateAbbr={abbr}
+            heading={`Get deadline reminders for ${state?.name ?? abbr}`}
+            subtext="We'll email you when registration deadlines, early voting, and election dates are approaching."
+          />
+        </AnimatedSection>
+
+        {/* ── Section F: Media Literacy ── */}
+        <AnimatedSection delay={0.3}>
           <section>
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
               <h2 className="text-2xl font-bold text-[#1B2A4A] mb-1 flex items-center gap-2">

@@ -90,6 +90,14 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
       WINDOW_SEC
     );
     if (!allowed) return tooManyRequests(retryAfter);
+  } else if (pathname === "/api/subscribe" && request.method === "POST") {
+    // ── Stricter rate limit on subscribe endpoint ───────────────────────
+    const { allowed, retryAfter } = await checkRateLimit(
+      `sub:${ip}`,
+      5, // 5 requests per 60s
+      60
+    );
+    if (!allowed) return tooManyRequests(retryAfter);
   } else {
     // ── Rate-limit public API routes ────────────────────────────────────
     const { allowed, retryAfter } = await checkRateLimit(

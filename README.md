@@ -1,8 +1,8 @@
-# InformedVoter
+# InformedVoter — Your Government, In Plain English
 
-A nonpartisan civic information platform for US voters — the "Wikipedia for government." Research your representatives, track legislation, follow Supreme Court cases, explore campaign finance data, and exercise your rights — all in one place, without partisan spin.
+A nonpartisan civic information platform — Congress, the Supreme Court, federal agencies, campaign finance, and elections, all explained without jargon or partisan spin. Powered by AI to cut through legal and legislative complexity.
 
-**Live:** [informed-voter.vercel.app](https://informed-voter.vercel.app)
+**Live:** [knowyourgov.us](https://knowyourgov.us)
 
 ## Features
 

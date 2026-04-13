@@ -268,33 +268,33 @@ export default function AboutPage() {
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <a
-                href="mailto:info@informedvoter.us"
+                href="mailto:info@knowyourgov.us"
                 className="flex items-center gap-3 p-4 bg-white/10 rounded-xl hover:bg-white/15 transition-colors"
               >
                 <Mail size={20} className="text-blue-300 shrink-0" />
                 <div>
                   <p className="text-xs text-white/50">General inquiries</p>
-                  <p className="text-sm font-semibold">info@informedvoter.us</p>
+                  <p className="text-sm font-semibold">info@knowyourgov.us</p>
                 </div>
               </a>
               <a
-                href="mailto:corrections@informedvoter.us"
+                href="mailto:corrections@knowyourgov.us"
                 className="flex items-center gap-3 p-4 bg-white/10 rounded-xl hover:bg-white/15 transition-colors"
               >
                 <AlertTriangle size={20} className="text-amber-300 shrink-0" />
                 <div>
                   <p className="text-xs text-white/50">Report a correction</p>
-                  <p className="text-sm font-semibold">corrections@informedvoter.us</p>
+                  <p className="text-sm font-semibold">corrections@knowyourgov.us</p>
                 </div>
               </a>
               <a
-                href="https://informedvoter.us"
+                href="https://knowyourgov.us"
                 className="flex items-center gap-3 p-4 bg-white/10 rounded-xl hover:bg-white/15 transition-colors"
               >
                 <Globe size={20} className="text-emerald-300 shrink-0" />
                 <div>
                   <p className="text-xs text-white/50">Website</p>
-                  <p className="text-sm font-semibold">informedvoter.us</p>
+                  <p className="text-sm font-semibold">knowyourgov.us</p>
                 </div>
               </a>
             </div>

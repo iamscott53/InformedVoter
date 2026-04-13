@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/api/", "/api/cron/", "/api/ai/"],
       },
     ],
-    sitemap: "https://informedvoter.us/sitemap.xml",
+    sitemap: "https://knowyourgov.us/sitemap.xml",
   };
 }

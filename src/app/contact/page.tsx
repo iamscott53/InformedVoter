@@ -73,7 +73,7 @@ export default function ContactPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <a
-              href="mailto:info@informedvoter.us"
+              href="mailto:info@knowyourgov.us"
               className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl
                          hover:bg-blue-100 transition-colors"
             >
@@ -82,12 +82,12 @@ export default function ContactPage() {
               </div>
               <div>
                 <p className="text-xs text-gray-500">General inquiries</p>
-                <p className="text-sm font-semibold text-[#1B2A4A]">info@informedvoter.us</p>
+                <p className="text-sm font-semibold text-[#1B2A4A]">info@knowyourgov.us</p>
               </div>
             </a>
 
             <a
-              href="mailto:corrections@informedvoter.us"
+              href="mailto:corrections@knowyourgov.us"
               className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-100 rounded-xl
                          hover:bg-amber-100 transition-colors"
             >
@@ -96,7 +96,7 @@ export default function ContactPage() {
               </div>
               <div>
                 <p className="text-xs text-gray-500">Report a correction</p>
-                <p className="text-sm font-semibold text-[#1B2A4A]">corrections@informedvoter.us</p>
+                <p className="text-sm font-semibold text-[#1B2A4A]">corrections@knowyourgov.us</p>
               </div>
             </a>
 
@@ -117,7 +117,7 @@ export default function ContactPage() {
             </a>
 
             <a
-              href="https://informedvoter.us"
+              href="https://knowyourgov.us"
               className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-100 rounded-xl
                          hover:bg-emerald-100 transition-colors"
             >
@@ -126,7 +126,7 @@ export default function ContactPage() {
               </div>
               <div>
                 <p className="text-xs text-gray-500">Website</p>
-                <p className="text-sm font-semibold text-[#1B2A4A]">informedvoter.us</p>
+                <p className="text-sm font-semibold text-[#1B2A4A]">knowyourgov.us</p>
               </div>
             </a>
           </div>

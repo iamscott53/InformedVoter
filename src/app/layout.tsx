@@ -6,6 +6,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import type { ReactNode } from "react";
 import { SiteJsonLd } from "@/components/seo/JsonLd";
+import SubscribeBottomBar from "@/components/features/SubscribeBottomBar";
 
 // ─────────────────────────────────────────────
 // Metadata
@@ -36,7 +37,7 @@ export const metadata: Metadata = {
   authors: [{ name: "InformedVoter" }],
   creator: "InformedVoter",
   publisher: "InformedVoter",
-  metadataBase: new URL("https://informedvoter.us"),
+  metadataBase: new URL("https://knowyourgov.us"),
   alternates: { canonical: "/" },
   robots: {
     index: true,
@@ -46,7 +47,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://informedvoter.us",
+    url: "https://knowyourgov.us",
     siteName: "InformedVoter",
     title: "InformedVoter — Your Government, In Plain English",
     description:
@@ -104,6 +105,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           </main>
 
           <Footer />
+          <SubscribeBottomBar />
         </Providers>
         <Analytics />
       </body>

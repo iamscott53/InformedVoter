@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/db";
 import { FEDERAL_AGENCIES } from "@/lib/agencies";
 
-const BASE_URL = "https://informedvoter.us";
+const BASE_URL = "https://knowyourgov.us";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // ── Static pages ──

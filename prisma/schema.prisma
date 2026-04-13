@@ -607,3 +607,43 @@ model JusticeInvestment {
   @@index([justiceId])
   @@index([year])
 }
+
+// ─────────────────────────────────────────────
+// Email Subscriptions
+// ─────────────────────────────────────────────
+
+enum SubscriberTopic {
+  BILLS
+  ELECTIONS
+  SCOTUS
+}
+
+model Subscriber {
+  id                Int               @id @default(autoincrement())
+  email             String            @unique
+  stateAbbr         String            @db.VarChar(2)
+  topics            SubscriberTopic[] @default([BILLS, ELECTIONS, SCOTUS])
+  verificationToken String            @unique @default(uuid())
+  verified          Boolean           @default(false)
+  verifiedAt        DateTime?
+  unsubscribeToken  String            @unique @default(uuid())
+  lastDigestAt      DateTime?
+  createdAt         DateTime          @default(now())
+
+  // Demographic profile (all optional)
+  profileToken      String            @unique @default(uuid())
+  profileCompletedAt DateTime?
+  partyAffiliation  String?
+  ageRange          String?
+  ethnicity         String?
+  gender            String?
+  zipCode           String?           @db.VarChar(10)
+  educationLevel    String?
+  communityService  Boolean?
+  votingFrequency   String?
+  issuesOfInterest  String[]          @default([])
+  referralSource    String?
+
+  @@index([stateAbbr])
+  @@index([verified])
+}

@@ -97,6 +97,12 @@ export enum DeadlineType {
   ELECTION_DAY = "ELECTION_DAY",
 }
 
+export enum SubscriberTopic {
+  BILLS = "BILLS",
+  ELECTIONS = "ELECTIONS",
+  SCOTUS = "SCOTUS",
+}
+
 // ─────────────────────────────────────────────
 // Common UI interfaces
 // ─────────────────────────────────────────────

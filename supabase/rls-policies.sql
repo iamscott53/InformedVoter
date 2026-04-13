@@ -174,6 +174,14 @@ CREATE POLICY "public_read_state_polling_locator"
 
 
 -- ───────────────────────────────────────────────────────────────────────────
+-- 3b. Subscriber table — PII (emails), fully locked down
+-- ───────────────────────────────────────────────────────────────────────────
+
+ALTER TABLE "Subscriber" ENABLE ROW LEVEL SECURITY;
+-- No policies: default deny. All access goes through Prisma (postgres superuser).
+
+
+-- ───────────────────────────────────────────────────────────────────────────
 -- 4. Verification query
 --    Run this after applying the migration to confirm all tables have RLS on.
 -- ───────────────────────────────────────────────────────────────────────────
