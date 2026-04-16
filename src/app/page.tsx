@@ -72,7 +72,7 @@ export default function HomePage() {
             </div>
 
             {/* Right: interactive map */}
-            <div>
+            <div id="select-state">
               <USStateMap variant="dark" />
             </div>
           </div>

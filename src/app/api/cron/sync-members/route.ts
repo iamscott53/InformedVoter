@@ -321,9 +321,17 @@ async function upsertMember(
   // Store the bioguideId in contactInfo for future cross-referencing
   const contactInfo = { bioguideId: member.bioguideId };
 
-  // Try to find an existing record by name + stateId + officeType
-  // (the schema has no unique external ID column)
-  const existing = await prisma.candidate.findFirst({
+  // Try to find an existing record by bioguideId (stored in contactInfo JSON),
+  // falling back to name + stateId + officeType for legacy records
+  const existingByBioguide = await prisma.candidate.findFirst({
+    where: {
+      stateId,
+      officeType,
+      contactInfo: { path: ["bioguideId"], equals: member.bioguideId },
+    },
+    select: { id: true },
+  });
+  const existing = existingByBioguide ?? await prisma.candidate.findFirst({
     where: {
       name,
       stateId,
@@ -344,6 +352,7 @@ async function upsertMember(
         incumbentSince: incumbentSince ?? undefined,
         termEnds: termEnds ?? undefined,
         contactInfo,
+        lastVerifiedAt: new Date(),
         updatedAt: new Date(),
       },
     });
@@ -362,6 +371,7 @@ async function upsertMember(
         incumbentSince,
         termEnds,
         contactInfo,
+        lastVerifiedAt: new Date(),
       },
     });
     return "created";
@@ -457,7 +467,8 @@ export async function GET(request: Request) {
       }
     }
 
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    const durationMs = Date.now() - startTime;
+    const elapsed = (durationMs / 1000).toFixed(1);
     const synced = created + updated;
 
     console.log(
@@ -465,6 +476,18 @@ export async function GET(request: Request) {
         `synced: ${synced}, created: ${created}, updated: ${updated}, ` +
         `skipped: ${skipped}, errors: ${errors}`
     );
+
+    await prisma.dataSyncLog.create({
+      data: {
+        syncType: "members",
+        status: errors === 0 ? "success" : "partial",
+        recordsTotal: allMembers.length,
+        recordsSynced: synced,
+        recordsFailed: errors,
+        durationMs,
+        metadata: { created, updated, skipped },
+      },
+    });
 
     return Response.json({
       synced,
@@ -477,8 +500,19 @@ export async function GET(request: Request) {
       message: `Successfully synced ${synced} of ${allMembers.length} members`,
     });
   } catch (error) {
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    const durationMs = Date.now() - startTime;
+    const elapsed = (durationMs / 1000).toFixed(1);
     console.error(`[sync-members] Fatal error after ${elapsed}s:`, error);
+
+    await prisma.dataSyncLog.create({
+      data: {
+        syncType: "members",
+        status: "failed",
+        durationMs,
+        errorMessage: error instanceof Error ? error.message : "Unknown error",
+      },
+    }).catch(() => {}); // Don't fail the response if logging fails
+
     return Response.json(
       {
         error: "Sync failed",

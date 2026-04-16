@@ -68,8 +68,6 @@ const NAV_LINKS: NavLink[] = [
   },
 ];
 
-const DEFAULT_STATE = "CA";
-
 /** Paths that need `/state/{abbr}` prepended */
 const STATE_PATHS = new Set(["/bills", "/elections", "/voter-info"]);
 
@@ -115,11 +113,11 @@ export default function Navigation({ isOpen, onClose }: NavigationProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const { userState } = useUserState();
 
-  const stateAbbr = userState ?? DEFAULT_STATE;
-
   /** Resolve a nav link href — prepend `/state/{abbr}` for state-scoped pages */
-  const resolveHref = (href: string) =>
-    STATE_PATHS.has(href) ? `/state/${stateAbbr}${href}` : href;
+  const resolveHref = (href: string) => {
+    if (!STATE_PATHS.has(href)) return href;
+    return userState ? `/state/${userState}${href}` : "/#select-state";
+  };
 
   // Close on Escape key
   useEffect(() => {

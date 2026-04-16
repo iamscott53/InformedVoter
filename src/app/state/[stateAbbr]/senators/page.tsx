@@ -32,7 +32,9 @@ export default async function SenatorsPage({
 
   const state = await prisma.state.findUnique({ where: { abbreviation: abbr } });
 
-  const senators = state
+  // Each state has exactly 2 US senators — limit to 2 as a safety guard
+  // against duplicate records, and deduplicate by bioguideId
+  const rawSenators = state
     ? await prisma.candidate.findMany({
         where: { stateId: state.id, officeType: OfficeType.US_SENATOR },
         include: {
@@ -47,6 +49,18 @@ export default async function SenatorsPage({
         orderBy: { name: "asc" },
       })
     : [];
+
+  // Deduplicate by bioguideId (prefer most recently updated record)
+  const seenBioguideIds = new Set<string>();
+  const senators = rawSenators.filter((s) => {
+    const info = s.contactInfo as Record<string, unknown> | null;
+    const bioguideId = info?.bioguideId as string | undefined;
+    if (bioguideId) {
+      if (seenBioguideIds.has(bioguideId)) return false;
+      seenBioguideIds.add(bioguideId);
+    }
+    return true;
+  }).slice(0, 2);
 
   return (
     <div className="min-h-screen bg-gray-50">

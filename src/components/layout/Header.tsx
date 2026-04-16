@@ -22,14 +22,13 @@ interface NavItem {
 // Constants
 // ─────────────────────────────────────────────
 
-const DEFAULT_STATE = "CA";
-
 const NAV_ITEMS: NavItem[] = [
-  { href: "/",           label: "Home"       },
-  { href: "/bills",      label: "Bills"      },
-  { href: "/elections",  label: "Elections"  },
-  { href: "/voter-info", label: "Voter Info" },
-  { href: "/about",      label: "About"      },
+  { href: "/",               label: "Home"        },
+  { href: "/bills",          label: "Bills"       },
+  { href: "/elections",      label: "Elections"   },
+  { href: "/pac-recipients", label: "PAC Tracker" },
+  { href: "/voter-info",     label: "Voter Info"  },
+  { href: "/about",          label: "About"       },
 ];
 
 /** Paths that need `/state/{abbr}` prepended */
@@ -45,11 +44,12 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const { userState } = useUserState();
 
-  const stateAbbr = userState ?? DEFAULT_STATE;
-
-  /** Resolve a nav item href — prepend `/state/{abbr}` for state-scoped pages */
-  const resolveHref = (href: string) =>
-    STATE_PATHS.has(href) ? `/state/${stateAbbr}${href}` : href;
+  /** Resolve a nav item href — prepend `/state/{abbr}` for state-scoped pages,
+   *  or link to the homepage map if no state is selected */
+  const resolveHref = (href: string) => {
+    if (!STATE_PATHS.has(href)) return href;
+    return userState ? `/state/${userState}${href}` : "/#select-state";
+  };
 
   // Add shadow when page is scrolled
   useEffect(() => {

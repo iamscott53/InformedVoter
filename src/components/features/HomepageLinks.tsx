@@ -5,13 +5,9 @@ import { ArrowRight, ShieldCheck, BarChart3, AlertCircle, Newspaper } from "luci
 import { useUserState } from "@/hooks/useUserState";
 import AnimatedCards from "@/components/features/AnimatedCards";
 
-const DEFAULT_STATE = "CA";
-
 export function ExploreStateButton() {
   const { userState, isLoading } = useUserState();
-  const state = userState ?? DEFAULT_STATE;
 
-  // Don't render the link until the hook has resolved to avoid linking to the wrong state
   if (isLoading) {
     return (
       <span className="inline-flex items-center gap-2 bg-white/70 text-[#1B2A4A] font-semibold px-6 py-3 rounded-lg shadow-lg">
@@ -20,12 +16,15 @@ export function ExploreStateButton() {
     );
   }
 
+  // If no state selected, scroll to the map so the user can pick one
+  const href = userState ? `/state/${userState}` : "#select-state";
+
   return (
     <Link
-      href={`/state/${state}`}
+      href={href}
       className="inline-flex items-center gap-2 bg-white text-[#1B2A4A] font-semibold px-6 py-3 rounded-lg hover:bg-blue-50 transition-colors shadow-lg"
     >
-      Explore Your State <ArrowRight size={16} />
+      {userState ? "Explore Your State" : "Select Your State"} <ArrowRight size={16} />
     </Link>
   );
 }
@@ -81,11 +80,14 @@ const QUICK_ACTIONS: QuickAction[] = [
 
 export function QuickActions() {
   const { userState, isLoading } = useUserState();
-  const state = userState ?? DEFAULT_STATE;
 
   const items = QUICK_ACTIONS.map((a) => ({
     ...a,
-    href: isLoading ? "#" : `/state/${state}${a.path}`,
+    href: isLoading
+      ? "#"
+      : userState
+        ? `/state/${userState}${a.path}`
+        : "/#select-state",
   }));
 
   return <AnimatedCards items={items} />;
@@ -120,7 +122,6 @@ const VOTER_ESSENTIALS = [
 
 export function VoterEssentials() {
   const { userState, isLoading } = useUserState();
-  const state = userState ?? DEFAULT_STATE;
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -128,7 +129,11 @@ export function VoterEssentials() {
         const Icon = item.icon;
         const href = item.path.startsWith("/about")
           ? item.path
-          : isLoading ? "#" : `/state/${state}${item.path}`;
+          : isLoading
+            ? "#"
+            : userState
+              ? `/state/${userState}${item.path}`
+              : "/#select-state";
         return (
           <Link
             key={item.title}

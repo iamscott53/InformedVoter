@@ -7,6 +7,7 @@ import Footer from "@/components/layout/Footer";
 import type { ReactNode } from "react";
 import { SiteJsonLd } from "@/components/seo/JsonLd";
 import SubscribeBottomBar from "@/components/features/SubscribeBottomBar";
+import StateRequiredBanner from "@/components/features/StateRequiredBanner";
 
 // ─────────────────────────────────────────────
 // Metadata
@@ -95,6 +96,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           </a>
 
           <Header />
+          <StateRequiredBanner />
 
           <main
             id="main-content"

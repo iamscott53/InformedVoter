@@ -129,22 +129,24 @@ model State {
 }
 
 model Candidate {
-  id            Int        @id @default(autoincrement())
-  name          String
-  party         String
-  photoUrl      String?
-  biography     String?
-  websiteUrl    String?
-  stateId       Int?
-  officeType    OfficeType
-  district      String?
-  incumbentSince DateTime?
-  termEnds      DateTime?
-  isIncumbent   Boolean    @default(false)
-  contactInfo   Json       @default("{}")
-  socialMedia   Json       @default("{}")
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  id              Int        @id @default(autoincrement())
+  name            String
+  party           String
+  photoUrl        String?
+  biography       String?
+  websiteUrl      String?
+  stateId         Int?
+  officeType      OfficeType
+  district        String?
+  incumbentSince  DateTime?
+  termEnds        DateTime?
+  isIncumbent     Boolean    @default(false)
+  contactInfo     Json       @default("{}")
+  socialMedia     Json       @default("{}")
+  fecCandidateId  String?    // Promoted from CandidateFinance for direct lookups
+  lastVerifiedAt  DateTime?  // Last cross-checked against official source
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 
   state                   State?                   @relation(fields: [stateId], references: [id])
   policies                CandidatePolicy[]
@@ -153,11 +155,13 @@ model Candidate {
   billCosponsorships      BillCosponsor[]
   finance                 CandidateFinance[]
   independentExpenditures IndependentExpenditure[]
+  pacContributions        PacContribution[]
   bookmarks               UserBookmark[]
 
   @@index([stateId])
   @@index([officeType])
   @@index([party])
+  @@index([fecCandidateId])
 }
 
 model CandidatePolicy {
@@ -195,6 +199,8 @@ model Bill {
   fullTextUrl       String?
   congressGovUrl    String?
   subjects          Json       @default("[]")
+  lastVerifiedAt    DateTime?
+  sourceUrl         String?
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 
@@ -646,4 +652,68 @@ model Subscriber {
 
   @@index([stateAbbr])
   @@index([verified])
+}
+
+// ─────────────────────────────────────────────
+// PAC / Committee tracking
+// ─────────────────────────────────────────────
+
+model Committee {
+  id               Int      @id @default(autoincrement())
+  fecCommitteeId   String   @unique
+  name             String
+  treasurerName    String?
+  committeeType    String?  // "N" (PAC), "O" (Super PAC), "Q" (Qualified), etc.
+  designation      String?  // "B" (lobbyist), "D" (leadership), "P" (principal)
+  party            String?
+  connectedOrg     String?  // Connected organization name
+  fecUrl           String?  // Link to FEC committee page
+  lastSyncedAt     DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  contributions PacContribution[]
+
+  @@index([committeeType])
+  @@index([name])
+}
+
+model PacContribution {
+  id                Int       @id @default(autoincrement())
+  candidateId       Int
+  committeeId       Int
+  fecTransactionId  String?   @unique // FEC sub_id for deduplication
+  amount            Decimal   @db.Decimal(18, 2)
+  contributionDate  DateTime?
+  cycle             Int
+  fecFilingUrl      String?   // Link to specific FEC filing
+  createdAt         DateTime  @default(now())
+
+  candidate Candidate @relation(fields: [candidateId], references: [id])
+  committee Committee @relation(fields: [committeeId], references: [id])
+
+  @@index([candidateId])
+  @@index([committeeId])
+  @@index([cycle])
+  @@index([candidateId, committeeId, cycle])
+}
+
+// ─────────────────────────────────────────────
+// Data sync audit log
+// ─────────────────────────────────────────────
+
+model DataSyncLog {
+  id            Int      @id @default(autoincrement())
+  syncType      String   // "members", "bills", "campaign-finance", "pac-contributions"
+  status        String   // "success", "partial", "failed"
+  recordsTotal  Int      @default(0)
+  recordsSynced Int      @default(0)
+  recordsFailed Int      @default(0)
+  durationMs    Int      @default(0)
+  errorMessage  String?
+  metadata      Json     @default("{}")
+  createdAt     DateTime @default(now())
+
+  @@index([syncType])
+  @@index([createdAt])
 }
