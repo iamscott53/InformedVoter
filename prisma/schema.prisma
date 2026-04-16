@@ -316,6 +316,7 @@ model UserBookmark {
   @@unique([userId, entityType, entityId])
   @@index([userId])
   @@index([entityType, entityId])
+  @@index([entityId])
 }
 
 model CandidateFinance {
