@@ -18,7 +18,7 @@ const PAGE_LIMIT = 250;
 
 interface CongressMemberTerm {
   chamber: string;           // "Senate" | "House of Representatives"
-  congress: number;
+  congress?: number;         // Present on detail endpoint, ABSENT on list endpoint
   startYear?: number;
   endYear?: number;
   district?: number | null;
@@ -146,8 +146,16 @@ function resolveLatestTerm(
 
   if (list.length === 0) return null;
 
-  // Sort descending by congress number so [0] is the most recent term
-  const sorted = [...list].sort((a, b) => (b.congress ?? 0) - (a.congress ?? 0));
+  // Sort descending by start year (primary) and congress number (tiebreaker).
+  // The list endpoint omits `congress`, so sorting by congress alone becomes
+  // a no-op and the API-provided order wins — which for senators who were
+  // previously representatives puts their old House term first, misclassifying
+  // them. startYear is always present and correctly orders chronologically.
+  const sorted = [...list].sort((a, b) => {
+    const yearDelta = (b.startYear ?? 0) - (a.startYear ?? 0);
+    if (yearDelta !== 0) return yearDelta;
+    return (b.congress ?? 0) - (a.congress ?? 0);
+  });
   return sorted[0];
 }
 
@@ -322,21 +330,23 @@ async function upsertMember(
   // Store the bioguideId in contactInfo for future cross-referencing
   const contactInfo = { bioguideId: member.bioguideId };
 
-  // Try to find an existing record by bioguideId (stored in contactInfo JSON),
-  // falling back to name + stateId + officeType for legacy records
+  // Look up by bioguideId ONLY — not scoped by officeType. bioguideId is
+  // globally unique per member, and if a member was previously misclassified
+  // (e.g. senator stored as representative) we want to update the existing
+  // row in place, not create a duplicate under the new officeType.
   const existingByBioguide = await prisma.candidate.findFirst({
     where: {
-      stateId,
-      officeType,
       contactInfo: { path: ["bioguideId"], equals: member.bioguideId },
     },
     select: { id: true },
   });
+  // Legacy-seed fallback: rows without bioguideId, match by name + state + office
   const existing = existingByBioguide ?? await prisma.candidate.findFirst({
     where: {
       name,
       stateId,
       officeType,
+      contactInfo: { equals: {} },
     },
     select: { id: true },
   });
@@ -349,6 +359,8 @@ async function upsertMember(
         party,
         photoUrl,
         websiteUrl,
+        stateId,
+        officeType,
         district,
         isIncumbent: true,
         incumbentSince: incumbentSince ?? undefined,
