@@ -300,11 +300,12 @@ async function upsertMember(
   const officialWebsite = await fetchMemberWebsite(member.bioguideId);
   const websiteUrl = officialWebsite ?? null;
 
-  // Build a canonical display name (prefer invertedOrderName for consistency)
+  // Build a canonical display name. directOrderName is "First Last" — what users
+  // expect to see. invertedOrderName is "Last, First" (sort order).
   const name =
-    member.invertedOrderName ??
     member.directOrderName ??
-    member.name;
+    member.name ??
+    member.invertedOrderName;
 
   // Determine incumbentSince from term start
   let incumbentSince: Date | null = null;
@@ -344,6 +345,7 @@ async function upsertMember(
     await prisma.candidate.update({
       where: { id: existing.id },
       data: {
+        name,
         party,
         photoUrl,
         websiteUrl,
