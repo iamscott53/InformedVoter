@@ -762,32 +762,39 @@ export async function GET(request: Request) {
 
   try {
     // ── 1. Load federal candidates that have a bioguideId in contactInfo ───────
-    // We rely on the bioguideId being present to confirm these are real members
-    // synced from Congress.gov; we use name + state to look up FEC IDs.
-    const candidates = await prisma.candidate.findMany({
-      where: {
-        officeType: { in: [OfficeType.US_SENATOR, OfficeType.US_REPRESENTATIVE] },
-        // Only process candidates that have a bioguideId in contactInfo
-        // (synced from Congress.gov). Filter candidates without it in JS below.
-        NOT: {
-          contactInfo: { equals: {} },
-        },
-      },
-      select: {
-        id: true,
-        name: true,
-        officeType: true,
-        contactInfo: true,
-        state: {
-          select: { abbreviation: true },
-        },
-      },
-      orderBy: { id: "asc" },
-      take: candidatesPerRun,
-    });
+    // Stale-first ordering: candidates with no finance data come first (NULL
+    // sorts first in ASC), then the oldest finance rows rotate in. This means
+    // every weekly run makes forward progress across all 535 members, and
+    // eventually re-verifies everyone.
+    const rows = await prisma.$queryRaw<Array<{
+      id: number;
+      name: string;
+      officeType: OfficeType;
+      contactInfo: unknown;
+      stateAbbr: string | null;
+    }>>`
+      SELECT c.id,
+             c.name,
+             c."officeType",
+             c."contactInfo",
+             s.abbreviation AS "stateAbbr"
+      FROM "Candidate" c
+      LEFT JOIN "State" s ON s.id = c."stateId"
+      WHERE c."officeType" IN ('US_SENATOR', 'US_REPRESENTATIVE')
+        AND c."contactInfo" ? 'bioguideId'
+      ORDER BY (
+        SELECT MAX(f."updatedAt") FROM "CandidateFinance" f WHERE f."candidateId" = c.id
+      ) ASC NULLS FIRST, c.id ASC
+      LIMIT ${candidatesPerRun}
+    `;
 
-    // Filter to only those with a bioguideId in contactInfo JSON
-    const filteredCandidates = candidates.filter((c) => {
+    const filteredCandidates = rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      officeType: r.officeType,
+      contactInfo: r.contactInfo,
+      state: { abbreviation: r.stateAbbr ?? "" },
+    })).filter((c) => {
       const info = c.contactInfo as Record<string, unknown> | null;
       return info && typeof info === "object" && "bioguideId" in info && info.bioguideId;
     });

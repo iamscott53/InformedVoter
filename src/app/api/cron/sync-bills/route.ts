@@ -80,9 +80,13 @@ interface CongressBillDetailResponse {
     introducedDate?: string;
     latestAction?: CongressBillLatestAction;
     sponsors?: CongressBillSponsor[];
+    // The detail endpoint exposes policyArea at the top level of bill.
+    // `subjects` on the detail is just {count, url} — actual subject names
+    // require a separate call to /bill/.../subjects.
+    policyArea?: { name: string };
     subjects?: {
-      legislativeSubjects?: CongressBillSubject[];
-      policyArea?: { name: string };
+      count?: number;
+      url?: string;
     };
     summaries?: {
       count?: number;
@@ -93,6 +97,14 @@ interface CongressBillDetailResponse {
     cboCostEstimates?: Array<{ url?: string }>;
     constitutionalAuthorityStatementText?: string;
     updateDate?: string;
+  };
+}
+
+/** Shape returned by /bill/{congress}/{type}/{number}/subjects */
+interface CongressBillSubjectsResponse {
+  subjects?: {
+    legislativeSubjects?: CongressBillSubject[];
+    policyArea?: { name: string };
   };
 }
 
@@ -259,6 +271,29 @@ async function fetchBillDetail(
   }
 }
 
+// Separate endpoint — returns up to ~20 detailed legislative subjects.
+// Costs one extra API call per bill, so we only call it for bills that
+// advance past "In Committee" (the ones most likely to matter for analysis).
+async function fetchBillSubjects(
+  congress: number,
+  type: string,
+  number: string
+): Promise<string[]> {
+  try {
+    const url = buildApiUrl(`/bill/${congress}/${type.toLowerCase()}/${number}/subjects`);
+    const data = await congressFetch<CongressBillSubjectsResponse>(url);
+    return (data.subjects?.legislativeSubjects ?? [])
+      .map((s) => s.name)
+      .filter(Boolean);
+  } catch (err) {
+    console.warn(
+      `[sync-bills] Could not fetch subjects for ${congress}-${type}-${number}:`,
+      err
+    );
+    return [];
+  }
+}
+
 // ─────────────────────────────────────────────
 // Sponsor lookup — cached to avoid redundant DB hits
 // ─────────────────────────────────────────────
@@ -333,9 +368,14 @@ async function upsertBill(
     }-bill/${number}`;
 
   // ── Subjects ──────────────────────────────────────────────────────────────
+  // policyArea (single top-level category) is returned inline by the bill detail.
+  // legislativeSubjects (detailed tags) require a separate /subjects call —
+  // only worth spending an API call on bills that are actually moving.
+  const policyArea = detail?.policyArea?.name;
   const legislativeSubjects =
-    detail?.subjects?.legislativeSubjects?.map((s) => s.name) ?? [];
-  const policyArea = detail?.subjects?.policyArea?.name;
+    status !== BillStatus.INTRODUCED && status !== BillStatus.IN_COMMITTEE
+      ? await fetchBillSubjects(CURRENT_CONGRESS, type, number)
+      : [];
   const subjects: string[] = policyArea
     ? [policyArea, ...legislativeSubjects]
     : legislativeSubjects;
