@@ -111,7 +111,7 @@ export default async function StateDashboardPage({
       icon: FileText,
       title: "Federal Bills",
       description: `Bills sponsored by ${state.name}'s congressional delegation`,
-      href: `/state/${abbr}/bills?chamber=HOUSE`,
+      href: `/state/${abbr}/bills`,
       count: billCount > 0 ? `${billCount} Bills` : "None this session",
       color: "text-purple-600",
       bg: "bg-purple-50",

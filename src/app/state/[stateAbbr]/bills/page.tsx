@@ -37,10 +37,12 @@ export default async function BillsPage({
 
   const state = await prisma.state.findUnique({ where: { abbreviation: abbr } });
 
-  // Build where clause
-  const where: Prisma.BillWhereInput = {
-    OR: state ? [{ stateId: state.id }, { stateId: null }] : [{ stateId: null }],
-  };
+  // Build where clause. Federal bills are not state-scoped at the Bill level;
+  // we consider a bill relevant to a state if its sponsor belongs to that
+  // state's delegation. State-level legislation still carries Bill.stateId.
+  const where: Prisma.BillWhereInput = state
+    ? { OR: [{ sponsor: { stateId: state.id } }, { stateId: state.id }] }
+    : {};
 
   if (chamber && (chamber === "HOUSE" || chamber === "SENATE")) {
     where.chamber = chamber as Chamber;
