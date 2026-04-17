@@ -55,16 +55,21 @@ export default async function StateDashboardPage({
 
   if (!state) notFound();
 
-  // Fetch real counts in parallel
-  const [senatorCount, repCount, billCount, electionCount] = await Promise.all([
+  // Fetch real counts in parallel.
+  // Federal bills are not state-scoped, so "bills for this state" means bills
+  // sponsored by a member of this state's congressional delegation.
+  const [senatorCount, repCount, governorCount, billCount, electionCount] = await Promise.all([
     prisma.candidate.count({
       where: { stateId: state.id, officeType: OfficeType.US_SENATOR },
     }),
     prisma.candidate.count({
-      where: { stateId: state.id, officeType: OfficeType.US_REPRESENTATIVE },
+      where: { stateId: state.id, officeType: OfficeType.US_REPRESENTATIVE, isIncumbent: true },
+    }),
+    prisma.candidate.count({
+      where: { stateId: state.id, officeType: OfficeType.GOVERNOR, isIncumbent: true },
     }),
     prisma.bill.count({
-      where: { stateId: state.id },
+      where: { sponsor: { stateId: state.id } },
     }),
     prisma.election.count({
       where: { stateId: state.id, date: { gte: new Date() } },
@@ -87,7 +92,7 @@ export default async function StateDashboardPage({
       title: "U.S. Representatives",
       description: "Your House representatives in Congress",
       href: `/state/${abbr}/representatives`,
-      count: repCount > 0 ? `${repCount} Reps` : "View All",
+      count: repCount > 0 ? `${repCount} Reps` : "Not available",
       color: "text-indigo-600",
       bg: "bg-indigo-50",
       border: "border-indigo-100",
@@ -97,7 +102,7 @@ export default async function StateDashboardPage({
       title: "Governor",
       description: `The current governor of ${state.name}`,
       href: `/state/${abbr}/governor`,
-      count: "1 Official",
+      count: governorCount > 0 ? "1 Governor" : "Coming soon",
       color: "text-emerald-600",
       bg: "bg-emerald-50",
       border: "border-emerald-100",
@@ -105,9 +110,9 @@ export default async function StateDashboardPage({
     {
       icon: FileText,
       title: "Federal Bills",
-      description: "Active legislation in Congress affecting your state",
+      description: `Bills sponsored by ${state.name}'s congressional delegation`,
       href: `/state/${abbr}/bills?chamber=HOUSE`,
-      count: billCount > 0 ? `${billCount} Bills` : "View Bills",
+      count: billCount > 0 ? `${billCount} Bills` : "None this session",
       color: "text-purple-600",
       bg: "bg-purple-50",
       border: "border-purple-100",
@@ -117,7 +122,7 @@ export default async function StateDashboardPage({
       title: "State Bills",
       description: "Bills moving through the state legislature",
       href: `/state/${abbr}/bills`,
-      count: "View Bills",
+      count: "Coming soon",
       color: "text-violet-600",
       bg: "bg-violet-50",
       border: "border-violet-100",
@@ -127,7 +132,7 @@ export default async function StateDashboardPage({
       title: "Upcoming Elections",
       description: "Scheduled elections and what's on the ballot",
       href: `/state/${abbr}/elections`,
-      count: electionCount > 0 ? `${electionCount} Upcoming` : "View All",
+      count: electionCount > 0 ? `${electionCount} Upcoming` : "None scheduled",
       color: "text-amber-600",
       bg: "bg-amber-50",
       border: "border-amber-100",
@@ -146,8 +151,8 @@ export default async function StateDashboardPage({
       icon: DollarSign,
       title: "Campaign Finance",
       description: "Who is funding campaigns and how money flows in elections",
-      href: `/state/${abbr}/bills`,
-      count: "Data Available",
+      href: "/pac-recipients",
+      count: "View data",
       color: "text-rose-600",
       bg: "bg-rose-50",
       border: "border-rose-100",
@@ -238,7 +243,7 @@ export default async function StateDashboardPage({
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 divide-x divide-gray-100">
             {[
-              { label: "Bills in DB",        value: billCount > 0 ? String(billCount) : "—" },
+              { label: "Bills Sponsored",    value: billCount > 0 ? String(billCount) : "—" },
               { label: "Senators",           value: String(senatorCount || 2) },
               { label: "Representatives",    value: repCount > 0 ? String(repCount) : "—" },
               { label: "Upcoming Elections", value: electionCount > 0 ? String(electionCount) : "—" },

@@ -4,7 +4,7 @@ import { ChevronRight } from "lucide-react";
 import AipacRecipientsTable from "@/components/features/AipacRecipientsTable";
 
 export const metadata: Metadata = {
-  title: "AIPAC Political Contributions to Congress | InformedVoter",
+  title: "AIPAC Political Contributions to Congress",
   description:
     "Members of Congress who received contributions from AIPAC and affiliated political action committees, as reported in FEC public filings.",
 };

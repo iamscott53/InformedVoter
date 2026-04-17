@@ -3,7 +3,7 @@ import Link from "next/link";
 import { DollarSign, ArrowRight, ChevronRight } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "PAC Tracker — Political Action Committee Contributions | InformedVoter",
+  title: "PAC Tracker — Political Action Committee Contributions",
   description:
     "Track political action committee (PAC) contributions to members of Congress using FEC public filings.",
 };
