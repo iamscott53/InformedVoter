@@ -306,10 +306,23 @@ export async function GET(request: Request) {
       LEFT JOIN "State" s ON s.id = c."stateId"
       WHERE c."officeType" IN ('US_SENATOR', 'US_REPRESENTATIVE')
         AND c."contactInfo" ? 'bioguideId'
-      ORDER BY (
-        SELECT MAX(pc."contributionDate") FROM "PacContribution" pc
-         WHERE pc."candidateId" = c.id AND pc.cycle = ${CURRENT_CYCLE}
-      ) ASC NULLS FIRST, c.id ASC
+      ORDER BY
+        -- Priority 1: candidates with a resolvable FEC ID (we can actually
+        -- fetch PAC contributions for them). Skip the ones without first
+        -- so a small limit doesn't waste the whole batch on no-ops.
+        CASE
+          WHEN c."fecCandidateId" IS NOT NULL THEN 0
+          WHEN (SELECT f."fecCandidateId" FROM "CandidateFinance" f
+                  WHERE f."candidateId" = c.id AND f.cycle = ${CURRENT_CYCLE}
+                  LIMIT 1) IS NOT NULL THEN 0
+          ELSE 1
+        END ASC,
+        -- Priority 2: stale-first — never-processed candidates come first,
+        -- then those with the oldest PAC contribution data.
+        (SELECT MAX(pc."contributionDate") FROM "PacContribution" pc
+           WHERE pc."candidateId" = c.id AND pc.cycle = ${CURRENT_CYCLE}
+        ) ASC NULLS FIRST,
+        c.id ASC
       LIMIT ${candidatesPerRun}
     `;
 
