@@ -190,7 +190,10 @@ export async function fetchAllPacContributionsToCommittee(
     try {
       const url = buildFecUrl("/schedules/schedule_a/", {
         committee_id: recipientCommitteeId,
-        contributor_type: "COM",
+        // FEC accepts "individual" or "committee" here — not "COM". The old
+        // "COM" value silently matched nothing, causing every PAC sync to
+        // return zero contributions.
+        contributor_type: "committee",
         two_year_transaction_period: String(cycle),
         per_page: "100",
         page: String(page),
