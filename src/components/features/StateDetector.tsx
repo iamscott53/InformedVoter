@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { MapPin, ChevronDown, Loader2, ArrowRight } from "lucide-react";
+import { MapPin, ChevronDown, ArrowRight } from "lucide-react";
 import { useUserState } from "@/hooks/useUserState";
 
 interface State {
@@ -15,7 +15,7 @@ interface StateDetectorProps {
 
 export default function StateDetector({ states }: StateDetectorProps) {
   const router = useRouter();
-  const { userState, isLoading } = useUserState();
+  const { userState, isHydrating } = useUserState();
 
   const stateName = states.find((s) => s.abbr === userState)?.name ?? userState;
 
@@ -26,30 +26,21 @@ export default function StateDetector({ states }: StateDetectorProps) {
     }
   }
 
-  // ── Loading state ──
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center gap-3 py-4">
-        <Loader2 size={20} className="animate-spin text-[#1B2A4A]" />
-        <span className="text-base text-gray-500 font-medium">
-          Detecting your state...
-        </span>
-      </div>
-    );
-  }
+  // During hydration, render nothing to avoid flashing "Select your state"
+  // for a user whose cookie is about to load.
+  if (isHydrating) return null;
 
-  // ── State detected ──
+  // ── Selected state ──
   if (userState) {
     return (
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-4">
-        {/* Prominent detected-state banner */}
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-10 h-10 bg-[#1B2A4A]/10 rounded-full">
             <MapPin size={20} className="text-[#1B2A4A]" />
           </div>
           <div>
             <p className="text-lg font-semibold text-[#1B2A4A] leading-snug">
-              We detected you&apos;re in{" "}
+              Your state:{" "}
               <a
                 href={`/state/${userState}`}
                 className="underline decoration-2 underline-offset-2 hover:text-[#2a3f6a] transition-colors"
@@ -65,7 +56,6 @@ export default function StateDetector({ states }: StateDetectorProps) {
                 View your state info <ArrowRight size={14} />
               </a>
               <span className="text-gray-300 select-none">|</span>
-              {/* Inline change-state dropdown */}
               <div className="relative inline-flex items-center">
                 <select
                   value=""
@@ -73,7 +63,7 @@ export default function StateDetector({ states }: StateDetectorProps) {
                   aria-label="Change state"
                   className="appearance-none pl-2 pr-6 py-0.5 text-sm font-medium text-[#1B2A4A]/70 hover:text-[#1B2A4A] bg-transparent border-none cursor-pointer focus:outline-none focus:ring-0"
                 >
-                  <option value="">Not your state? Change it</option>
+                  <option value="">Change state</option>
                   {states.map((s) => (
                     <option key={s.abbr} value={s.abbr}>
                       {s.name}
@@ -92,7 +82,7 @@ export default function StateDetector({ states }: StateDetectorProps) {
     );
   }
 
-  // ── No state detected — prominent call-to-action ──
+  // ── No state selected — prompt user to pick one ──
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-5 py-5">
       <div className="flex items-center gap-3">

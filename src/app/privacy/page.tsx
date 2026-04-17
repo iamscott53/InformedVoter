@@ -90,12 +90,12 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-[#1B2A4A] mb-3">IP-Based State Detection</h2>
+            <h2 className="text-xl font-bold text-[#1B2A4A] mb-3">State Selection</h2>
             <p className="text-gray-600 leading-relaxed">
-              On your first visit, we may use a third-party geolocation service to detect your
-              U.S. state based on your IP address. This is done solely to pre-select your state
-              for a better experience. The result is stored in a cookie on your device — your
-              IP address is not stored on our servers.
+              You choose your state manually by clicking the map or selecting from the dropdown.
+              Your selection is stored in a cookie on your device so it persists across visits.
+              We do not detect your location, do not look up your IP address, and do not send
+              your location to any third party.
             </p>
           </section>
 

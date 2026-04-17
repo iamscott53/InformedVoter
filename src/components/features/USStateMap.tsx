@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Loader2, Search, ChevronDown } from "lucide-react";
+import { MapPin, Search, ChevronDown } from "lucide-react";
 import { useUserState } from "@/hooks/useUserState";
 import { US_STATES } from "@/data/us-states";
 
@@ -12,7 +12,6 @@ import { US_STATES } from "@/data/us-states";
 
 interface USStateMapProps {
   variant?: "light" | "dark";
-  showDetectionBanner?: boolean;
 }
 
 // ─────────────────────────────────────────────
@@ -87,10 +86,9 @@ const STATE_LABELS: Record<string, { x: number; y: number; size?: number }> = {
 
 export default function USStateMap({
   variant = "light",
-  showDetectionBanner = false,
 }: USStateMapProps) {
   const router = useRouter();
-  const { userState, setUserState, isLoading } = useUserState();
+  const { userState, setUserState } = useUserState();
   const [hoveredState, setHoveredState] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -99,7 +97,6 @@ export default function USStateMap({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isDark = variant === "dark";
-  const detectedName = userState ? US_STATES[userState]?.name : null;
   const hoveredInfo = hoveredState ? US_STATES[hoveredState] : null;
 
   const filteredStates = search.trim()
@@ -174,49 +171,6 @@ export default function USStateMap({
 
   return (
     <div className="relative w-full">
-      {/* Detection banner */}
-      {showDetectionBanner && (
-        <div className="mb-4 text-center">
-          {isLoading ? (
-            <div className="inline-flex items-center gap-2 text-white/60">
-              <Loader2 size={16} className="animate-spin" />
-              <span className="text-sm font-medium">
-                Detecting your state...
-              </span>
-            </div>
-          ) : detectedName ? (
-            <div className="inline-flex items-center gap-2">
-              <MapPin
-                size={16}
-                className={isDark ? "text-blue-400" : "text-[#1B2A4A]"}
-              />
-              <span
-                className={`text-sm font-semibold ${isDark ? "text-white" : "text-[#1B2A4A]"}`}
-              >
-                We detected you&apos;re in{" "}
-                <span className={isDark ? "text-blue-300" : "text-blue-600"}>
-                  {detectedName}
-                </span>
-              </span>
-              <span className={isDark ? "text-white/30" : "text-gray-300"}>
-                |
-              </span>
-              <span
-                className={`text-xs ${isDark ? "text-white/50" : "text-gray-400"}`}
-              >
-                Click any state or use the selector below
-              </span>
-            </div>
-          ) : (
-            <p
-              className={`text-sm font-medium ${isDark ? "text-white/60" : "text-gray-500"}`}
-            >
-              Click any state on the map to explore civic information
-            </p>
-          )}
-        </div>
-      )}
-
       {/* Hover tooltip */}
       {hoveredInfo && (
         <div
@@ -307,7 +261,7 @@ export default function USStateMap({
             <Search size={14} className="opacity-50" />
             <span>
               {userState
-                ? `${US_STATES[userState]?.name ?? userState} — Click to change`
+                ? `${US_STATES[userState]?.name ?? userState} — click to change`
                 : "Or search for your state..."}
             </span>
           </div>

@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 // ─────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────
 
-const COOKIE_NAME = "user-state";
+// Renamed from "user-state" (2026-04) to wipe any stale auto-detected values
+// from earlier builds that included IP-based geolocation. Everyone re-selects
+// once; after that the cookie persists across all navigation.
+const COOKIE_NAME = "selected-state";
 /** Cookie max-age in seconds — 1 year */
 const COOKIE_MAX_AGE = 365 * 24 * 60 * 60;
 
@@ -40,27 +43,39 @@ function writeCookie(name: string, value: string, maxAge: number): void {
 // ─────────────────────────────────────────────
 
 export interface UseUserStateReturn {
-  /** Two-letter state abbreviation, or null if not yet selected */
+  /** Two-letter state abbreviation, or null if user has not selected one */
   userState: string | null;
   /** Update the user's state, persisting to cookie */
   setUserState: (abbr: string) => void;
-  /** Always false — no auto-detection */
-  isLoading: boolean;
-  /** Always false — no auto-detection */
-  isGeolocated: boolean;
+  /**
+   * True during the brief post-hydration window before the cookie is read.
+   * Components that gate navigation on userState should render neutral UI
+   * during this window to avoid flashing "select your state" for a user
+   * who already has one saved.
+   */
+  isHydrating: boolean;
 }
 
 // ─────────────────────────────────────────────
 // Hook
 // ─────────────────────────────────────────────
 
+// The hook deliberately starts in a null / hydrating state on both server
+// and client so hydration matches exactly. The cookie is read in useEffect
+// after mount. This is the ONLY place the cookie is read or written —
+// there is NO IP-based detection, NO server-side fallback, and NO default
+// state. The cookie changes only when the user explicitly calls setUserState.
 export function useUserState(): UseUserStateReturn {
-  const initialState =
-    typeof document !== "undefined"
-      ? readCookie(COOKIE_NAME)?.toUpperCase() ?? null
-      : null;
+  const [userState, _setUserState] = useState<string | null>(null);
+  const [isHydrating, setIsHydrating] = useState(true);
 
-  const [userState, _setUserState] = useState<string | null>(initialState);
+  // Read the cookie once on mount, then on every subsequent remount.
+  // This is what makes the selection persist across navigation.
+  useEffect(() => {
+    const stored = readCookie(COOKIE_NAME)?.toUpperCase() ?? null;
+    _setUserState(stored);
+    setIsHydrating(false);
+  }, []);
 
   const setUserState = useCallback((abbr: string) => {
     const normalized = abbr.toUpperCase();
@@ -68,5 +83,5 @@ export function useUserState(): UseUserStateReturn {
     _setUserState(normalized);
   }, []);
 
-  return { userState, setUserState, isLoading: false, isGeolocated: false };
+  return { userState, setUserState, isHydrating };
 }

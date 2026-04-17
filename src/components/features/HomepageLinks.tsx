@@ -6,9 +6,9 @@ import { useUserState } from "@/hooks/useUserState";
 import AnimatedCards from "@/components/features/AnimatedCards";
 
 export function ExploreStateButton() {
-  const { userState, isLoading } = useUserState();
+  const { userState, isHydrating } = useUserState();
 
-  if (isLoading) {
+  if (isHydrating) {
     return (
       <span className="inline-flex items-center gap-2 bg-white/70 text-[#1B2A4A] font-semibold px-6 py-3 rounded-lg shadow-lg">
         Explore Your State <ArrowRight size={16} />
@@ -79,11 +79,11 @@ const QUICK_ACTIONS: QuickAction[] = [
 ];
 
 export function QuickActions() {
-  const { userState, isLoading } = useUserState();
+  const { userState, isHydrating } = useUserState();
 
   const items = QUICK_ACTIONS.map((a) => ({
     ...a,
-    href: isLoading
+    href: isHydrating
       ? "#"
       : userState
         ? `/state/${userState}${a.path}`
@@ -121,7 +121,7 @@ const VOTER_ESSENTIALS = [
 ];
 
 export function VoterEssentials() {
-  const { userState, isLoading } = useUserState();
+  const { userState, isHydrating } = useUserState();
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -129,7 +129,7 @@ export function VoterEssentials() {
         const Icon = item.icon;
         const href = item.path.startsWith("/about")
           ? item.path
-          : isLoading
+          : isHydrating
             ? "#"
             : userState
               ? `/state/${userState}${item.path}`
