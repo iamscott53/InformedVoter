@@ -102,8 +102,14 @@ export default async function GovernorPage({
                     </div>
 
                     <div className="flex-1 text-center sm:text-left">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-2 justify-center sm:justify-start">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-2 justify-center sm:justify-start flex-wrap">
                         <h2 className="text-2xl font-bold text-[#1B2A4A]">{governor.name}</h2>
+                        <Link
+                          href={`/candidate/${governor.id}`}
+                          className="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+                        >
+                          View Full Profile →
+                        </Link>
                         <PartyBadge party={governor.party} showFullName size="md" />
                       </div>
 
@@ -146,12 +152,6 @@ export default async function GovernorPage({
                       Official Website <ExternalLink size={11} />
                     </a>
                   )}
-                  <Link
-                    href={`/candidate/${governor.id}`}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:underline ml-auto"
-                  >
-                    View Full Profile →
-                  </Link>
                 </div>
               </div>
 

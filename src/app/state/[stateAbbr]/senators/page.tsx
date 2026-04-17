@@ -125,7 +125,15 @@ export default async function SenatorsPage({
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2 flex-wrap">
                             <div>
-                              <h2 className="text-xl font-bold text-[#1B2A4A]">{senator.name}</h2>
+                              <div className="flex items-center gap-3 flex-wrap">
+                                <h2 className="text-xl font-bold text-[#1B2A4A]">{senator.name}</h2>
+                                <Link
+                                  href={`/candidate/${senator.id}`}
+                                  className="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+                                >
+                                  View Full Profile →
+                                </Link>
+                              </div>
                               <p className="text-sm text-gray-500 mt-0.5">U.S. Senator</p>
                             </div>
                             <PartyBadge party={senator.party} showFullName size="md" />
@@ -200,7 +208,7 @@ export default async function SenatorsPage({
                     )}
 
                     {/* Footer */}
-                    <div className="px-6 py-4 bg-gray-50 flex items-center justify-between">
+                    <div className="px-6 py-4 bg-gray-50">
                       {senator.websiteUrl ? (
                         <a
                           href={senator.websiteUrl}
@@ -219,15 +227,7 @@ export default async function SenatorsPage({
                         >
                           Official Website <ExternalLink size={12} />
                         </a>
-                      ) : (
-                        <span />
-                      )}
-                      <Link
-                        href={`/candidate/${senator.id}`}
-                        className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-700"
-                      >
-                        View Full Profile →
-                      </Link>
+                      ) : null}
                     </div>
                   </div>
                 </AnimatedSection>

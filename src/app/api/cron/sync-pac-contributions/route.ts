@@ -278,31 +278,50 @@ export async function GET(request: Request) {
   );
 
   try {
-    // Load federal candidates with a bioguideId — prefer those with fecCandidateId
-    const candidates = await prisma.candidate.findMany({
-      where: {
-        officeType: { in: [OfficeType.US_SENATOR, OfficeType.US_REPRESENTATIVE] },
-        NOT: { contactInfo: { equals: {} } },
-      },
-      select: {
-        id: true,
-        name: true,
-        fecCandidateId: true,
-        officeType: true,
-        contactInfo: true,
-        state: { select: { abbreviation: true } },
-        finance: {
-          select: { fecCandidateId: true },
-          where: { cycle: CURRENT_CYCLE },
-          take: 1,
-        },
-      },
-      orderBy: { id: "asc" },
-      take: candidatesPerRun,
-    });
+    // Stale-first ordering: candidates we've never processed for PAC
+    // contributions come first (NULLs first), then oldest-updated. This is
+    // the same pattern used by sync-campaign-finance — every weekly run
+    // advances through the full 535-member list instead of reprocessing
+    // the same first 30 each time.
+    type CandRow = {
+      id: number;
+      name: string;
+      fecCandidateId: string | null;
+      officeType: OfficeType;
+      contactInfo: unknown;
+      stateAbbr: string | null;
+      financeFecId: string | null;
+    };
+    const rows = await prisma.$queryRaw<CandRow[]>`
+      SELECT c.id,
+             c.name,
+             c."fecCandidateId",
+             c."officeType",
+             c."contactInfo",
+             s.abbreviation AS "stateAbbr",
+             (SELECT f."fecCandidateId" FROM "CandidateFinance" f
+                WHERE f."candidateId"=c.id AND f.cycle=${CURRENT_CYCLE}
+                LIMIT 1) AS "financeFecId"
+      FROM "Candidate" c
+      LEFT JOIN "State" s ON s.id = c."stateId"
+      WHERE c."officeType" IN ('US_SENATOR', 'US_REPRESENTATIVE')
+        AND c."contactInfo" ? 'bioguideId'
+      ORDER BY (
+        SELECT MAX(pc."contributionDate") FROM "PacContribution" pc
+         WHERE pc."candidateId" = c.id AND pc.cycle = ${CURRENT_CYCLE}
+      ) ASC NULLS FIRST, c.id ASC
+      LIMIT ${candidatesPerRun}
+    `;
 
-    // Filter to those with a bioguideId
-    const filtered = candidates.filter((c) => {
+    const filtered = rows.map(r => ({
+      id: r.id,
+      name: r.name,
+      fecCandidateId: r.fecCandidateId,
+      officeType: r.officeType,
+      contactInfo: r.contactInfo,
+      state: { abbreviation: r.stateAbbr ?? '' },
+      finance: r.financeFecId ? [{ fecCandidateId: r.financeFecId }] : [],
+    })).filter((c) => {
       const info = c.contactInfo as Record<string, unknown> | null;
       return info && typeof info === "object" && "bioguideId" in info;
     });

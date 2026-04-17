@@ -12,7 +12,6 @@ import {
   Users,
   Search,
 } from "lucide-react";
-import { ALL_AIPAC_COMMITTEE_IDS } from "@/lib/pac-constants";
 
 // ─────────────────────────────────────────────
 // Types
@@ -51,6 +50,15 @@ interface ApiResponse {
 }
 
 // ─────────────────────────────────────────────
+// Props
+// ─────────────────────────────────────────────
+
+interface PacRecipientsTableProps {
+  /** One or more FEC committee IDs to aggregate contributions from */
+  committeeIds: readonly string[];
+}
+
+// ─────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────
 
@@ -77,14 +85,13 @@ const CYCLES = Array.from({ length: 5 }, (_, i) => {
 // Component
 // ─────────────────────────────────────────────
 
-export default function AipacRecipientsTable() {
+export default function PacRecipientsTable({ committeeIds }: PacRecipientsTableProps) {
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [totalRecipients, setTotalRecipients] = useState(0);
   const [totalAmount, setTotalAmount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filters
   const [chamber, setChamber] = useState("");
   const [party, setParty] = useState("");
   const [cycle, setCycle] = useState(CYCLES[0]);
@@ -99,7 +106,7 @@ export default function AipacRecipientsTable() {
     setError(null);
 
     const params = new URLSearchParams({
-      committeeIds: ALL_AIPAC_COMMITTEE_IDS.join(","),
+      committeeIds: committeeIds.join(","),
       cycle: String(cycle),
       sortBy,
       sortDir,
@@ -113,18 +120,12 @@ export default function AipacRecipientsTable() {
     try {
       const res = await fetch(`/api/pac-recipients?${params}`);
       if (!res.ok) throw new Error("Failed to fetch data");
-
       const json: ApiResponse = await res.json();
       let filtered = json.data.recipients;
-
-      // Client-side name filter
       if (nameSearch.trim()) {
         const q = nameSearch.toLowerCase();
-        filtered = filtered.filter((r) =>
-          r.candidateName.toLowerCase().includes(q)
-        );
+        filtered = filtered.filter((r) => r.candidateName.toLowerCase().includes(q));
       }
-
       setRecipients(filtered);
       setTotalRecipients(json.data.totalRecipients);
       setTotalAmount(json.data.totalAmount);
@@ -133,7 +134,7 @@ export default function AipacRecipientsTable() {
     } finally {
       setLoading(false);
     }
-  }, [chamber, party, cycle, sortBy, sortDir, page, nameSearch]);
+  }, [committeeIds, chamber, party, cycle, sortBy, sortDir, page, nameSearch]);
 
   useEffect(() => {
     fetchData();
@@ -159,21 +160,15 @@ export default function AipacRecipientsTable() {
 
   const SortIcon = ({ col }: { col: string }) => {
     if (sortBy !== col) return null;
-    return sortDir === "desc" ? (
-      <ChevronDown size={14} />
-    ) : (
-      <ChevronUp size={14} />
-    );
+    return sortDir === "desc" ? <ChevronDown size={14} /> : <ChevronUp size={14} />;
   };
 
   return (
     <div>
-      {/* Summary stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
-            <Users size={14} />
-            Total Recipients
+            <Users size={14} /> Total Recipients
           </div>
           <p className="text-2xl font-bold text-[#1B2A4A]">
             {loading ? "—" : totalRecipients.toLocaleString()}
@@ -181,8 +176,7 @@ export default function AipacRecipientsTable() {
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
-            <DollarSign size={14} />
-            Total Contributed
+            <DollarSign size={14} /> Total Contributed
           </div>
           <p className="text-2xl font-bold text-[#1B2A4A]">
             {loading ? "—" : formatCurrency(totalAmount)}
@@ -190,47 +184,34 @@ export default function AipacRecipientsTable() {
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
-            <DollarSign size={14} />
-            Election Cycle
+            <DollarSign size={14} /> Election Cycle
           </div>
-          <p className="text-2xl font-bold text-[#1B2A4A]">
-            {cycle - 1}–{cycle}
-          </p>
+          <p className="text-2xl font-bold text-[#1B2A4A]">{cycle - 1}–{cycle}</p>
         </div>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <select
           value={chamber}
           onChange={(e) => { setChamber(e.target.value); setPage(1); }}
           className="px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg outline-none focus:border-[#1B2A4A]/40"
         >
-          {CHAMBERS.map((c) => (
-            <option key={c.value} value={c.value}>{c.label}</option>
-          ))}
+          {CHAMBERS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
         </select>
-
         <select
           value={party}
           onChange={(e) => { setParty(e.target.value); setPage(1); }}
           className="px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg outline-none focus:border-[#1B2A4A]/40"
         >
-          {PARTIES.map((p) => (
-            <option key={p.value} value={p.value}>{p.label}</option>
-          ))}
+          {PARTIES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
         </select>
-
         <select
           value={cycle}
           onChange={(e) => { setCycle(parseInt(e.target.value)); setPage(1); }}
           className="px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg outline-none focus:border-[#1B2A4A]/40"
         >
-          {CYCLES.map((c) => (
-            <option key={c} value={c}>{c - 1}–{c}</option>
-          ))}
+          {CYCLES.map((c) => <option key={c} value={c}>{c - 1}–{c}</option>)}
         </select>
-
         <div className="relative flex-1 min-w-[200px]">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
@@ -243,7 +224,6 @@ export default function AipacRecipientsTable() {
         </div>
       </div>
 
-      {/* Table */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 size={24} className="animate-spin text-gray-400" />
@@ -251,8 +231,14 @@ export default function AipacRecipientsTable() {
       ) : error ? (
         <div className="text-center py-20 text-red-500">{error}</div>
       ) : recipients.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
-          No contribution data found for this cycle and filters.
+        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+          <p className="text-gray-500 font-medium">
+            No contribution data found for this cycle and filters.
+          </p>
+          <p className="text-sm text-gray-400 mt-2">
+            Data syncs weekly from FEC public filings. If this is a recently
+            added PAC, records may not have been collected yet.
+          </p>
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -299,14 +285,10 @@ export default function AipacRecipientsTable() {
                       key={r.candidateId}
                       className="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer"
                       onClick={() =>
-                        setExpandedId(
-                          expandedId === r.candidateId ? null : r.candidateId
-                        )
+                        setExpandedId(expandedId === r.candidateId ? null : r.candidateId)
                       }
                     >
-                      <td className="px-4 py-3 text-gray-400">
-                        {(page - 1) * 50 + idx + 1}
-                      </td>
+                      <td className="px-4 py-3 text-gray-400">{(page - 1) * 50 + idx + 1}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           {r.photoUrl ? (
@@ -357,8 +339,6 @@ export default function AipacRecipientsTable() {
                         {r.contributionCount}
                       </td>
                     </tr>
-
-                    {/* Expanded row — individual contributions */}
                     {expandedId === r.candidateId && (
                       <tr key={`${r.candidateId}-detail`}>
                         <td colSpan={7} className="bg-gray-50/80 px-8 py-4">
@@ -367,10 +347,7 @@ export default function AipacRecipientsTable() {
                           </p>
                           <div className="space-y-1">
                             {r.contributions.map((c, ci) => (
-                              <div
-                                key={ci}
-                                className="flex items-center justify-between text-sm py-1"
-                              >
+                              <div key={ci} className="flex items-center justify-between text-sm py-1">
                                 <span className="text-gray-700">
                                   {c.committeeName}
                                   {c.date && (
@@ -380,9 +357,7 @@ export default function AipacRecipientsTable() {
                                   )}
                                 </span>
                                 <div className="flex items-center gap-3">
-                                  <span className="font-medium">
-                                    {formatCurrency(c.amount)}
-                                  </span>
+                                  <span className="font-medium">{formatCurrency(c.amount)}</span>
                                   {c.fecUrl && (
                                     <a
                                       href={c.fecUrl}
