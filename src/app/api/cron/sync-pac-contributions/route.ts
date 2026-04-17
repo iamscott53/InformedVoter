@@ -10,6 +10,10 @@
 
 import { prisma } from "@/lib/db";
 import { OfficeType } from "@prisma/client";
+
+// Long-running: fetches FEC data for up to 100 candidates with 500ms delays
+// and 3-4 API calls each. Raise the function timeout from the default 10s.
+export const maxDuration = 300;
 import {
   buildFecUrl,
   fecFetch,
