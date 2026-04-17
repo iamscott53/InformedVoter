@@ -17,6 +17,10 @@ import AnimatedSection from "@/components/features/AnimatedSection";
 import { prisma } from "@/lib/db";
 import { OfficeType } from "@/types";
 
+// Render on every request so notFound() emits a real 404 status for
+// unknown state abbreviations instead of returning a cached 200.
+export const dynamic = "force-dynamic";
+
 // ─────────────────────────────────────────────
 // Metadata
 // ─────────────────────────────────────────────

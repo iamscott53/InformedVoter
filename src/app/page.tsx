@@ -50,11 +50,7 @@ export default function HomePage() {
                 </span>
               </h1>
 
-              <p className="text-xl text-white/80 mb-3 leading-relaxed">
-                Powered by{" "}
-                <span className="font-semibold text-white">InformedVoter</span>
-              </p>
-              <p className="text-base text-white/60 mb-8 max-w-lg leading-relaxed">
+              <p className="text-base text-white/70 mb-8 max-w-lg leading-relaxed">
                 Congress, the Supreme Court, federal agencies, campaign finance,
                 and your ballot — all in one place, explained without jargon or
                 partisan spin.
