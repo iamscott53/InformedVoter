@@ -63,13 +63,13 @@ A nonpartisan civic information platform — Congress, the Supreme Court, federa
 |-------|-----------|
 | Framework | Next.js 16 (App Router, Turbopack) with TypeScript |
 | Styling | Tailwind CSS v4 |
-| Database | PostgreSQL via Supabase with Prisma ORM |
+| Database | PostgreSQL via Prisma ORM |
 | AI Analysis | Anthropic Claude API (Haiku for cost-effective analysis) |
 | Caching | Upstash Redis |
 | Animations | Framer Motion |
 | Icons | Lucide React |
-| Analytics | Vercel Web Analytics |
-| Hosting | Vercel (with scheduled cron jobs) |
+| Analytics | Plausible or self-hosted analytics |
+| Hosting | Self-hosted VPS with Docker Compose |
 
 ## Data Sources
 
@@ -105,7 +105,7 @@ Cron jobs keep data fresh automatically:
 ### Prerequisites
 
 - Node.js 18+
-- PostgreSQL database (Supabase recommended)
+- PostgreSQL database (self-hosted via Docker Compose)
 
 ### Installation
 
@@ -127,7 +127,7 @@ cp .env.example .env
 
 | Variable | Description |
 |----------|-------------|
-| `DATABASE_URL` | PostgreSQL connection string (with PgBouncer for Supabase) |
+| `DATABASE_URL` | PostgreSQL connection string  |
 | `DIRECT_URL` | Direct PostgreSQL connection (port 5432, for migrations) |
 | `ANTHROPIC_API_KEY` | Anthropic API key for AI analysis |
 
@@ -141,7 +141,7 @@ cp .env.example .env
 | `GOOGLE_CIVIC_API_KEY` | Elections and polling places |
 | `UPSTASH_REDIS_URL` | Redis caching URL |
 | `UPSTASH_REDIS_TOKEN` | Redis authentication token |
-| `CRON_SECRET` | Secret for securing Vercel cron endpoints |
+| `CRON_SECRET` | Secret for securing cron endpoints |
 
 ### Database Setup
 
