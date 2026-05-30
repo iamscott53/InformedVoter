@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────
 // GET /api/cron/analyze-bills
-// Vercel Cron Job — run AI analysis on bills that haven't been analyzed yet
-// Schedule: daily (configure in vercel.json)
+// Cron Job — run AI analysis on bills that haven't been analyzed yet
+// Schedule: daily (configure in scripts/cron-setup.sh)
 // ─────────────────────────────────────────────
 
 import { prisma } from "@/lib/db";

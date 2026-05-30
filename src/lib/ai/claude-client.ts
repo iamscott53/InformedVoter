@@ -279,3 +279,72 @@ Return valid JSON matching this schema exactly:
 
   return extractJson<CourtCaseAnalysis>(getTextContent(message));
 }
+
+// ─────────────────────────────────────────────
+// generateSpeakingTemplate
+// ─────────────────────────────────────────────
+
+export interface SpeakingTemplateInput {
+  agendaItemTitle: string;
+  agendaItemDescription: string;
+  tone: "professional" | "assertive";
+}
+
+export interface SpeakingTemplate {
+  opening: string;
+  body: string;
+  closing: string;
+  key_facts: string[];
+  suggested_questions: string[];
+  tone: string;
+}
+
+/**
+ * Generate a citizen speaking template for a city council agenda item.
+ * The template argues AGAINST the proposal with hard facts.
+ */
+export async function generateSpeakingTemplate(
+  input: SpeakingTemplateInput
+): Promise<SpeakingTemplate> {
+  const { agendaItemTitle, agendaItemDescription, tone } = input;
+
+  const toneInstructions =
+    tone === "professional"
+      ? `Use a respectful, measured, fact-driven tone. Address council members as "Council members" or "Mayor and Council." Cite specific data. Ask pointed questions. Avoid profanity or personal attacks. Sound like a well-informed constituent who has done their homework.`
+      : `Use a direct, unapologetic, constitutionally grounded tone. You are a taxpayer and citizen exercising your First Amendment right to petition government. Do not be rude, but do not grovel. Use strong language if warranted by the facts. Remind them they work for you. Reference your rights if challenged.`;
+
+  const prompt = `You are a grassroots civic organizer helping citizens speak at city council meetings. Your job is to write a compelling, fact-based public comment script arguing AGAINST a specific agenda item.
+
+AGENDA ITEM: ${agendaItemTitle}
+DESCRIPTION: ${agendaItemDescription || "No additional description provided."}
+
+Tone: ${tone}
+
+${toneInstructions}
+
+Research the topic thoroughly. Provide hard facts, statistics, and real-world examples. If the topic involves:
+- Flock cameras / surveillance: emphasize privacy violations, lack of crime reduction evidence, cost overruns, facial recognition risks, and normalization of a surveillance state.
+- Data centers: emphasize water usage, energy grid strain, noise pollution, lack of local jobs, tax abatements that hurt schools, and environmental degradation.
+- Zoning / development: emphasize community character, infrastructure strain, affordable housing loss, and developer influence.
+- Policing / budgets: emphasize alternative investments, civilian oversight, and comparative statistics.
+
+Respond with valid JSON matching this exact structure:
+{
+  "opening": "1-2 sentence hook introducing yourself and your stance",
+  "body": "3-5 paragraphs of argument with facts, data, and examples. Write this as natural speech, not an essay. Use short sentences. Include pauses for effect.",
+  "closing": "1-2 sentence strong closing with a clear ask or demand",
+  "key_facts": ["fact 1 with source or statistic", "fact 2", "fact 3", "fact 4"],
+  "suggested_questions": ["question 1 to ask council on the record", "question 2", "question 3"],
+  "tone": "${tone}"
+}
+
+The body should be speakable in 2-3 minutes (roughly 300-450 words). Make it powerful and memorable.`;
+
+  const message = await anthropic.messages.create({
+    model: "claude-sonnet-4-5",
+    max_tokens: 2048,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  return extractJson<SpeakingTemplate>(getTextContent(message));
+}

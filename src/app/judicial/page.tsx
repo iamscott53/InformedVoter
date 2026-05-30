@@ -20,7 +20,7 @@ export default async function JudicialPage() {
     [activeJustices, recentCases, totalGifts] = await Promise.all([
       fetchJustices(),
       fetchRecentCases(),
-      prisma.justiceGift.count(),
+      prisma.justiceGift.count().catch(() => 0),
     ]);
   } catch {
     // Tables may not exist yet — render page with empty data

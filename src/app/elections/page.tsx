@@ -14,12 +14,21 @@ function daysUntil(d: Date): number {
 }
 
 export default async function ElectionsIndexPage() {
-  const elections = await prisma.election.findMany({
+  let elections: Awaited<ReturnType<typeof fetchElections>> = [];
+  try {
+    elections = await fetchElections();
+  } catch {
+    // DB may not be available during build — render empty state
+  }
+
+function fetchElections() {
+  return prisma.election.findMany({
     where: { date: { gte: new Date() } },
     include: { state: { select: { name: true, abbreviation: true } } },
     orderBy: { date: "asc" },
     take: 200,
   });
+}
 
   // Group by month for readability
   const byMonth: Record<string, typeof elections> = {};

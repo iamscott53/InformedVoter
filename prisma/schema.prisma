@@ -718,3 +718,87 @@ model DataSyncLog {
   @@index([syncType])
   @@index([createdAt])
 }
+
+// ─────────────────────────────────────────────
+// Local / Municipal Government
+// ─────────────────────────────────────────────
+
+model Municipality {
+  id                    String   @id @default(cuid())
+  name                  String
+  state                 String   // e.g. "CA"
+  zipCodes              String[] // covered zips
+  county                String?
+  cityHallAddress       String?
+  cityHallLat           Float?
+  cityHallLng           Float?
+  councilMeetingAddress String?
+  councilMeetingLat     Float?
+  councilMeetingLng     Float?
+  meetingScheduleNote   String?  // e.g. "1st and 3rd Tuesday"
+  legistarClient        String?  // e.g. "seattle" for webapi.legistar.com
+  civicPlusUrl          String?
+  dataSource            String   @default("manual") // "legistar" | "civicplus" | "manual" | "scraper"
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  meetings              LocalMeeting[]
+
+  @@index([state])
+  @@index([name])
+}
+
+model LocalMeeting {
+  id                String   @id @default(cuid())
+  municipalityId    String
+  municipality      Municipality @relation(fields: [municipalityId], references: [id])
+  title             String
+  meetingDate       DateTime
+  startTime         String?  // e.g. "18:00"
+  locationName      String?
+  locationAddress   String?
+  lat               Float?
+  lng               Float?
+  agendaUrl         String?
+  agendaText        String?  @db.Text
+  restrictions      String?  // e.g. "3 min limit, sign up by 5pm"
+  status            String   @default("scheduled") // scheduled | cancelled | completed
+  sourceUrl         String?
+  sourceType        String   @default("manual") // "legistar" | "civicplus" | "manual"
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  agendaItems       MeetingAgendaItem[]
+
+  @@index([municipalityId])
+  @@index([meetingDate])
+  @@index([status])
+}
+
+model MeetingAgendaItem {
+  id             String @id @default(cuid())
+  meetingId      String
+  meeting        LocalMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  title          String
+  description    String? @db.Text
+  itemNumber     String?
+  templatePrompt String? @db.Text
+  createdAt      DateTime @default(now())
+
+  @@index([meetingId])
+}
+
+model SubmittedMeeting {
+  id          String   @id @default(cuid())
+  city        String
+  state       String
+  meetingDate DateTime
+  startTime   String?
+  location    String
+  agenda      String?  @db.Text
+  email       String?  // optional contact for follow-up
+  status      String   @default("pending") // pending | approved | rejected
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  @@index([status])
+  @@index([createdAt])
+}

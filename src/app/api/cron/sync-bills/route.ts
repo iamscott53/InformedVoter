@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────
 // GET /api/cron/sync-bills
-// Vercel Cron Job — sync federal bills from Congress.gov API v3
-// Schedule: daily (configure in vercel.json)
+// Cron Job — sync federal bills from Congress.gov API v3
+// Schedule: daily (configure in scripts/cron-setup.sh)
 //
 // Accepts ?manual=true to bypass the CRON_SECRET check in development.
 // ─────────────────────────────────────────────

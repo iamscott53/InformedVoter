@@ -15,6 +15,7 @@ const WINDOW_SEC      = 60;
 function getClientIP(request: NextRequest): string {
   return (
     request.headers.get("cf-connecting-ip") ??
+    request.headers.get("x-vercel-forwarded-for") ??
     request.headers.get("x-real-ip") ??
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     "unknown"
@@ -75,9 +76,17 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     }
 
     const authHeader = request.headers.get("Authorization");
-    const token = authHeader?.startsWith("Bearer ")
+    const bearerToken = authHeader?.startsWith("Bearer ")
       ? authHeader.slice(7)
       : null;
+
+    // Vercel Cron Jobs cannot send custom headers, so we also accept
+    // the secret as a query parameter. In production, configure the
+    // cron path in vercel.json or the Vercel Dashboard with:
+    //   "/api/cron/sync-bills?secret=YOUR_CRON_SECRET"
+    const queryToken = searchParams.get("secret");
+
+    const token = bearerToken ?? queryToken ?? null;
 
     if (!token || !timingSafeCompare(token, cronSecret)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

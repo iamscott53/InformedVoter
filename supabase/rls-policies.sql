@@ -79,6 +79,9 @@ DROP POLICY IF EXISTS "public_read_justice_financial_disclosure" ON "JusticeFina
 DROP POLICY IF EXISTS "public_read_justice_gift"                ON "JusticeGift";
 DROP POLICY IF EXISTS "public_read_justice_investment"          ON "JusticeInvestment";
 DROP POLICY IF EXISTS "public_read_justice_reimbursement"       ON "JusticeReimbursement";
+DROP POLICY IF EXISTS "public_read_municipality"                ON "Municipality";
+DROP POLICY IF EXISTS "public_read_local_meeting"               ON "LocalMeeting";
+DROP POLICY IF EXISTS "public_read_meeting_agenda_item"         ON "MeetingAgendaItem";
 
 CREATE POLICY "public_read_state"                   ON "State"                       FOR SELECT TO anon, authenticated USING (true);
 CREATE POLICY "public_read_candidate"               ON "Candidate"                   FOR SELECT TO anon, authenticated USING (true);
@@ -106,6 +109,9 @@ CREATE POLICY "public_read_justice_financial_disclosure" ON "JusticeFinancialDis
 CREATE POLICY "public_read_justice_gift"            ON "JusticeGift"                 FOR SELECT TO anon, authenticated USING (true);
 CREATE POLICY "public_read_justice_investment"      ON "JusticeInvestment"           FOR SELECT TO anon, authenticated USING (true);
 CREATE POLICY "public_read_justice_reimbursement"   ON "JusticeReimbursement"        FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "public_read_municipality"            ON "Municipality"                FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "public_read_local_meeting"           ON "LocalMeeting"                FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "public_read_meeting_agenda_item"     ON "MeetingAgendaItem"           FOR SELECT TO anon, authenticated USING (true);
 
 
 -- ───────────────────────────────────────────────────────────────────────────

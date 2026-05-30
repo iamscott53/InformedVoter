@@ -1,0 +1,144 @@
+# 07 — Security
+
+> **Last Updated:** 2026-05-30
+
+---
+
+## Authentication Strategy
+
+### No Traditional User Auth
+- There is **no login system**, no passwords, and no session cookies for end users.
+- "Users" are identified by email address only (`User` table) for bookmarks.
+- Subscribers (`Subscriber` table) are identified by email + verification token.
+
+### Cron / AI Route Authentication
+- Protected routes (`/api/cron/*`, `/api/ai/*`) require a Bearer token.
+- Two implementations of constant-time comparison:
+  1. `src/middleware.ts`: Custom `timingSafeCompare()` using XOR (works in Edge Runtime)
+  2. `src/lib/auth.ts`: `verifyCronSecret()` using Node's `timingSafeEqual`
+- **Dev bypass:** `ALLOW_MANUAL_CRON=true` + `?manual=true` allows local development without a token. **Never enable in production.**
+
+---
+
+## Authorization / RBAC
+
+There is **no RBAC** in this application. All public pages and API routes are unauthenticated.
+
+| Role | Capabilities |
+|------|-------------|
+| Public visitor | Read all pages, search, subscribe |
+| Cron caller (with secret) | Trigger sync jobs, AI analysis |
+
+---
+
+## Rate Limiting
+
+**Implementation:** `src/lib/rate-limit.ts` (Redis-backed fixed-window counter)
+
+| Route Type | Limit | Window | Identifier |
+|------------|-------|--------|------------|
+| Public API (`/api/*`) | 60 requests | 60 seconds | `pub:${ip}` |
+| Protected API (`/api/cron/*`, `/api/ai/*`) | 300 requests | 60 seconds | `auth:${ip}` |
+| Subscribe (`/api/subscribe` POST) | 5 requests | 60 seconds | `sub:${ip}` |
+
+- **Fail-open:** If Redis is unavailable, all requests are allowed.
+- IP detection order: `cf-connecting-ip` → `x-real-ip` → `x-forwarded-for` → `"unknown"`
+- Nginx adds an additional layer: `60r/m` for API, `5r/m` for subscribe.
+
+---
+
+## Security Headers
+
+Set in `next.config.mjs` and applied to all routes:
+
+| Header | Value |
+|--------|-------|
+| `X-Frame-Options` | `DENY` |
+| `X-Content-Type-Options` | `nosniff` |
+| `X-XSS-Protection` | `1; mode=block` |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| `Permissions-Policy` | `geolocation=(self), camera=(), microphone=(), payment=(), usb=()` |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` |
+| `Content-Security-Policy` | `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://theunitedstates.io https://bioguide.congress.gov https://*.oyez.org; connect-src 'self' https://api.bigdatacloud.net https://ipapi.co https://api.usaspending.gov; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'` |
+
+Nginx adds additional headers via `nginx/snippets/security-headers.conf`.
+
+---
+
+## Input Sanitization
+
+- **DOMPurify** (`isomorphic-dompurify`) is used for rendering external HTML.
+- **File:** `src/lib/sanitize.ts`
+- Allowed tags: `p`, `a`, `ul`, `li`, `ol`, `br`, `strong`, `em`, `h1`–`h4`, `blockquote`, `span`, `div`
+- Allowed attributes: `href`, `target`, `rel`, `class`
+- Applied to: Oyez case HTML (`question`, `factsOfTheCase`, `conclusion`), external agency descriptions
+
+---
+
+## Docker Hardening
+
+**File:** `Dockerfile`
+
+- Multi-stage build (builder + runner)
+- **Non-root user:** `nextjs` (uid 1001) in runner stage
+- Minimal Alpine Linux base image
+- Only runtime dependencies installed (`openssl`, `curl`)
+- Health check endpoint: `/api/health`
+
+---
+
+## VPS Hardening
+
+**File:** `scripts/vps-setup.sh`
+
+- UFW firewall configuration
+- fail2ban for brute-force protection
+- unattended-upgrades for automatic security patches
+- SSH key-only authentication (password login disabled)
+- Docker log rotation
+
+---
+
+## Data Protection
+
+- **No PII beyond email** is required for core functionality.
+- **Demographic data** is optional and collected only after explicit subscription verification.
+- **Environment variables** (`.env`) are never committed — see `.gitignore`.
+- **Database** and **Redis** bind to `127.0.0.1` only — no public exposure.
+
+---
+
+## Supabase-Specific Security Considerations (Migration)
+
+When migrating to Supabase, enable these protections:
+
+### Row Level Security (RLS)
+- **Enable RLS on every table in the `public` schema.** Tables in exposed schemas are reachable through the Data API.
+- Create policies matching the actual access model:
+  - Public read access for `State`, `Candidate`, `Bill`, `CourtCase`, `Justice`, `Election`
+  - No public write access for any table (all writes go through API routes with `CRON_SECRET`)
+  - `Subscriber` table: allow reads only by verification token, not by generic `auth.uid()`
+
+### Auth
+- **Do not use Supabase Auth for this app** unless adding a login system.
+- If Auth is added later:
+  - Store authorization data in `app_metadata`, NOT `user_metadata` (user-editable and unsafe for RLS)
+  - Remember that deleting a user does NOT invalidate existing access tokens
+  - Never expose the `service_role` key in public clients
+
+### Views
+- **Views bypass RLS by default.** Use `CREATE VIEW ... WITH (security_invoker = true)` (Postgres 15+) or protect views by revoking access from `anon` and `authenticated` roles.
+
+### Storage
+- Not currently used. If images are uploaded later:
+  - Storage upsert requires INSERT + SELECT + UPDATE policies
+  - Grant only needed permissions
+
+---
+
+## Known Limitations
+
+1. **No CSRF protection** on API routes — not applicable since there are no state-changing authenticated user actions (only cron jobs use auth).
+2. **No request signing** on webhooks — cron jobs are triggered by host-level HTTP calls; ensure cron sources are trusted.
+3. **CSP allows `unsafe-inline`** for scripts and styles — required by Next.js inline chunks; review if stricter CSP is needed.
+4. **Rate limit fail-open** — Redis downtime removes all rate limiting; monitor Redis health.

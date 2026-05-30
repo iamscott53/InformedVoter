@@ -1,9 +1,9 @@
 // ─────────────────────────────────────────────
 // GET /api/cron/sync-votes
-// Vercel Cron Job — sync roll-call vote records from Congress.gov API v3
+// Cron Job — sync roll-call vote records from Congress.gov API v3
 // Uses the House Clerk XML for individual member votes (the JSON API
 // only provides party totals, not per-member data).
-// Schedule: daily (configure in vercel.json)
+// Schedule: daily (configure in scripts/cron-setup.sh)
 // ─────────────────────────────────────────────
 
 import { prisma } from "@/lib/db";

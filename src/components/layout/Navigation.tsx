@@ -12,6 +12,7 @@ import {
   MapPin,
   Info,
   ChevronRight,
+  Building2,
 } from "lucide-react";
 import { useUserState } from "@/hooks/useUserState";
 
@@ -53,6 +54,12 @@ const NAV_LINKS: NavLink[] = [
     label: "Elections",
     icon: Vote,
     description: "Upcoming elections & candidates",
+  },
+  {
+    href: "/local",
+    label: "Local",
+    icon: Building2,
+    description: "City council meetings & local action",
   },
   {
     href: "/voter-info",

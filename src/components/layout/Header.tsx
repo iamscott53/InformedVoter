@@ -27,6 +27,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/bills",          label: "Bills"       },
   { href: "/elections",      label: "Elections"   },
   { href: "/pac-recipients", label: "PAC Tracker" },
+  { href: "/local",          label: "Local"       },
   { href: "/voter-info",     label: "Voter Info"  },
   { href: "/about",          label: "About"       },
 ];

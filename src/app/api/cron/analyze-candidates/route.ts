@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────
 // GET /api/cron/analyze-candidates
-// Vercel Cron Job — run AI policy analysis on candidates across all categories
-// Schedule: weekly (configure in vercel.json)
+// Cron Job — run AI policy analysis on candidates across all categories
+// Schedule: weekly (configure in scripts/cron-setup.sh)
 // ─────────────────────────────────────────────
 
 import { prisma } from "@/lib/db";

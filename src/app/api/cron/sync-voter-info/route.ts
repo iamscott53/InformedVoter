@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────
 // GET /api/cron/sync-voter-info
-// Vercel Cron Job — seed/update voter registration info for all 50 states
-// Schedule: weekly or before major elections (configure in vercel.json)
+// Cron Job — seed/update voter registration info for all 50 states
+// Schedule: weekly or before major elections (configure in scripts/cron-setup.sh)
 // ─────────────────────────────────────────────
 
 import { prisma } from "@/lib/db";
