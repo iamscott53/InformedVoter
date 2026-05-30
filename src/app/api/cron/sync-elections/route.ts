@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────
 // GET /api/cron/sync-elections
 // Cron Job — sync upcoming election dates from Google Civic Information API
-// Schedule: weekly (configure in scripts/cron-setup.sh)
+// Schedule: weekly (configure in vercel.json)
 // ─────────────────────────────────────────────
 
 import { prisma } from "@/lib/db";

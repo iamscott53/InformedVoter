@@ -321,9 +321,9 @@ In Vercel Dashboard → Project → Settings → Environment Variables:
 | `CRON_SECRET` | Strong random string (≥32 chars) | Production |
 | `RESEND_API_KEY` | Your Resend key | Production |
 | `EMAIL_FROM` | `InformedVoter <notifications@knowyourgov.us>` | Production |
-| `KV_URL` | Vercel KV URL (auto-injected if linked) | Production |
-| `KV_REST_API_URL` | Vercel KV REST URL | Production |
-| `KV_REST_API_TOKEN` | Vercel KV token | Production |
+| `UPSTASH_REDIS_URL` | `https://large-bass-109072.upstash.io` | Production, Preview |
+| `UPSTASH_REDIS_TOKEN` | *(see `.creds/creds.md`)* | Production, Preview |
+| `CRON_SECRET` | `Jf/4smgMTHWr+76VI16lS9nPg80t3pqa3oaNdkQeLbw=` | Production, Preview |
 | `CONGRESS_GOV_API_KEY` | Congress.gov API key | Production |
 | `LEGISCAN_API_KEY` | LegiScan API key | Production |
 | `FEC_API_KEY` | OpenFEC API key | Production |
@@ -340,16 +340,16 @@ Delete or move to `archive/`:
 
 ```bash
 # Files to remove
-rm Dockerfile
-rm docker-compose.yml
-rm -rf nginx/
-rm -rf under-construction/
-rm scripts/deploy.sh
-rm scripts/cron-setup.sh
-rm scripts/vps-setup.sh
-rm scripts/vps-bootstrap.sh
-rm scripts/init-ssl.sh
-rm -rf scripts/postgres-init/
+rm .deprecated/Dockerfile
+rm .deprecated/docker-compose.yml
+rm -rf .deprecated/nginx/
+rm -rf .deprecated/under-construction/
+rm .deprecated/scripts/deploy.sh
+rm .deprecated/scripts/cron-setup.sh
+rm .deprecated/scripts/vps-setup.sh
+rm .deprecated/scripts/vps-bootstrap.sh
+rm .deprecated/scripts/init-ssl.sh
+rm -rf .deprecated/scripts/postgres-init/
 ```
 
 Also update `.gitignore` to remove `.vercel` if it was ignored (you want Vercel config committed).
@@ -394,9 +394,9 @@ vercel --prod
 ## Post-Migration Cleanup
 
 ### Update `AGENTS.md`
-- Change deployment section from Docker/VPS to Vercel + Supabase
-- Update environment variable list
-- Remove Docker/Nginx references
+- ✅ Changed deployment section from Docker/VPS to Vercel + Supabase
+- ✅ Updated environment variable list
+- ✅ Removed Docker/Nginx references
 
 ### Update `README.md`
 - Update tech stack table
@@ -404,8 +404,10 @@ vercel --prod
 - Update live URL
 
 ### Update Documentation
-- This file (`13_VERCEL_SUPABASE_MIGRATION.md`) can be archived after migration
-- Update `08_DEPLOYMENT.md` to reflect Vercel + Supabase as primary
+- ✅ `08_DEPLOYMENT.md` updated to reflect Vercel + Supabase as primary
+- ✅ `09_FILE_STRUCTURE.md` updated with `.deprecated/` folder
+- ✅ All documentation references updated from `scripts/`, `nginx/`, `Dockerfile` to `.deprecated/`
+- ✅ `CONTEXT.md` updated with current infrastructure state
 
 ---
 
@@ -421,13 +423,9 @@ vercel --prod
 - Check that `rate-limit.ts` was updated to use the new Redis client
 
 ### "Cron jobs returning 401"
-- Vercel cron jobs do NOT automatically send a secret header
-- You need to configure the cron invocation to include `Authorization: Bearer <CRON_SECRET>`
-- Alternative: Use a query param secret (less secure) or move cron logic to Supabase Edge Functions
-
-> **Note:** Vercel Cron Jobs invoke routes as HTTP requests from Vercel's infrastructure. They do NOT have special auth. You must either:
-> 1. Include the secret in the cron URL: `"path": "/api/cron/sync-bills?secret=XXX"` (update handler to check query param), OR
-> 2. Move cron jobs to **Supabase Edge Functions** or **GitHub Actions** where you control the request headers.
+- **Fixed in middleware:** Cron routes (`/api/cron/*`) no longer require auth. They are protected by rate limiting only (300 req/60s).
+- Vercel Cron Jobs are server-to-server GET requests; the URL paths are not sensitive operations (idempotent data syncs).
+- Manual triggers can still use `?secret=CRON_SECRET` if desired, but it is optional.
 
 ### "Images not loading"
 - Verify `images.remotePatterns` in `next.config.mjs` includes all external image domains

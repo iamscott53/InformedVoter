@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────
 // GET /api/cron/sync-campaign-finance
 // Cron Job — sync campaign finance data from the OpenFEC API
-// Schedule: weekly (configure in scripts/cron-setup.sh)
+// Schedule: weekly (configure in vercel.json)
 //
 // Accepts ?manual=true to bypass the CRON_SECRET check in development.
 // Accepts ?limit=N  to override how many candidates to process (default: 50).

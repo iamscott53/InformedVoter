@@ -46,7 +46,9 @@ prisma/*.db-journal
 
 # AI creation artifacts — prompts, configs, conversation logs
 AIDocs/
+.agents/
 .claude/
+.continue/
 CLAUDE.md
 AGENTS.md
 .cursor/
@@ -54,7 +56,6 @@ AGENTS.md
 .cursorindexingignore
 .cursorrules
 .copilot/
-.continue/
 .aider*
 .codeium/
 .windsurf/
@@ -74,5 +75,8 @@ SECURITY.md
 credentials.json
 service-account.json
 secrets/
+
+# Deprecated files (old VPS config, IDE artifacts, etc.)
+.deprecated/
 
 .vercel

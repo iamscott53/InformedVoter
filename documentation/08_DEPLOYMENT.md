@@ -15,7 +15,7 @@ This project is migrating from a **self-hosted VPS (Docker Compose)** back to it
 - **Host:** Ubuntu 24.04 VPS (1-2 vCPU, 2-4 GB RAM)
 - **IP:** `45.32.221.91`
 - **Services:** PostgreSQL 16, Redis 7, Next.js (Docker), Nginx, Certbot
-- **Deployment:** Manual via `scripts/deploy.sh`
+- **Deployment:** Vercel Git integration (push to `main` triggers deploy)
 
 See `09_FILE_STRUCTURE.md` for the full list of VPS-specific files.
 
@@ -46,15 +46,15 @@ See `09_FILE_STRUCTURE.md` for the full list of VPS-specific files.
 
 | File/Directory | Reason |
 |----------------|--------|
-| `Dockerfile` | Vercel builds directly from source |
-| `docker-compose.yml` | Not needed for serverless |
-| `nginx/` (all configs) | Vercel handles CDN, SSL, static serving |
-| `scripts/deploy.sh` | Replaced by Vercel Git integration |
-| `scripts/vps-setup.sh` | VPS hardening — not needed |
-| `scripts/vps-bootstrap.sh` | Not needed |
-| `scripts/init-ssl.sh` | Vercel handles SSL |
-| `scripts/cron-setup.sh` | Replaced by Vercel Cron Jobs |
-| `under-construction/` | Maintenance mode not needed on Vercel |
+| `.deprecated/Dockerfile` | Vercel builds directly from source |
+| `.deprecated/docker-compose.yml` | Not needed for serverless |
+| `.deprecated/nginx/` (all configs) | Vercel handles CDN, SSL, static serving |
+| `.deprecated/scripts/deploy.sh` | Replaced by Vercel Git integration |
+| `.deprecated/scripts/vps-setup.sh` | VPS hardening — not needed |
+| `.deprecated/scripts/vps-bootstrap.sh` | Not needed |
+| `.deprecated/scripts/init-ssl.sh` | Vercel handles SSL |
+| `.deprecated/scripts/cron-setup.sh` | Replaced by Vercel Cron Jobs |
+| `.deprecated/under-construction/` | Maintenance mode not needed on Vercel |
 
 ---
 

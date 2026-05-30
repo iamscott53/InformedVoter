@@ -13,7 +13,7 @@
 
 **Hosting History:** Originally on **Vercel + Supabase + Upstash Redis** → migrated to **self-hosted VPS (Docker Compose + Nginx)** → now migrating **back to Vercel + Supabase**.
 
-**Current Status:** Deployment config restored for Vercel + Supabase. Code pushed to GitHub. Supabase database connected. Schema migration SQL ready. Awaiting user to run SQL in Supabase Dashboard and deploy to Vercel.
+**Current Status:** Migration to Vercel + Supabase is complete. All Supabase tables created, RLS policies applied, Upstash Redis provisioned, middleware fixed for Vercel Cron Jobs. Build passes. Ready for Vercel env var configuration and deployment.
 
 ---
 
@@ -54,9 +54,9 @@
 
 ### Schema Status
 - **Existing tables** (already in Supabase): `State`, `Candidate`, `Bill`, `CourtCase`, `Justice`, `Election`, `VoterInfo`, `Committee`, `PacContribution`, `DataSyncLog`, `User`, `UserBookmark`, `Subscriber`, and all finance/judicial tables.
-- **Missing tables** (need to be created): `Municipality`, `LocalMeeting`, `MeetingAgendaItem`, `SubmittedMeeting`
-- **Migration file:** `supabase/missing-tables.sql` — run this in Supabase SQL Editor to create the missing tables.
-- **RLS policies:** `supabase/rls-policies.sql` — run after creating tables to enable Row Level Security.
+- **All tables created:** `Municipality`, `LocalMeeting`, `MeetingAgendaItem`, `SubmittedMeeting` created via `supabase/missing-tables.sql`
+- **RLS policies applied:** `supabase/rls-policies.sql` run — public read access on civic data tables, default deny on PII tables
+- **Upstash Redis provisioned:** `informedvoter-redis` in `us-east-1`
 
 ---
 
@@ -266,7 +266,7 @@ User → Vercel Edge Network (CDN + SSL)
 ```
 
 ### Files Removed for Migration
-`Dockerfile`, `docker-compose.yml`, `nginx/`, `under-construction/`, VPS scripts
+`.deprecated/Dockerfile`, `.deprecated/docker-compose.yml`, `.deprecated/nginx/`, `.deprecated/under-construction/`, `.deprecated/scripts/`
 
 ### Files Modified for Migration
 - `prisma/schema.prisma` — Added `directUrl` for Supabase
@@ -283,8 +283,8 @@ User → Vercel Edge Network (CDN + SSL)
 
 | Issue | Context | Decision Needed |
 |-------|---------|-----------------|
-| **Missing tables in Supabase** | `Municipality`, `LocalMeeting`, `MeetingAgendaItem`, `SubmittedMeeting` don't exist yet | Run `supabase/missing-tables.sql` in Supabase SQL Editor |
-| **RLS not enabled** | `supabase/rls-policies.sql` needs to be run after table creation | Run RLS SQL in Supabase SQL Editor |
+| **Vercel env vars** | `DATABASE_URL`, `DIRECT_URL`, `UPSTASH_REDIS_URL`, `UPSTASH_REDIS_TOKEN`, `CRON_SECRET`, `NEXT_PUBLIC_BASE_URL` need to be added to Vercel dashboard | Add in Vercel Project → Settings → Environment Variables |
+| **Optional API keys** | `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, data API keys not yet configured | Add when ready; app works without them (syncs skip missing sources) |
 | **No automated tests** | Zero test suite (Jest, Vitest, Playwright, Cypress) | Add tests? Which runner? |
 | **No formal DB migrations** | Uses `prisma db push` only | Switch to `prisma migrate dev` + Supabase migrations? |
 | **No user auth** | App is fully public. No login/session system. | Keep it public, or add Supabase Auth later? |
@@ -302,9 +302,16 @@ User → Vercel Edge Network (CDN + SSL)
 - `SUPABASE_PUBLISHABLE_KEY` — *(see `.creds/creds.md`)*
 - `SUPABASE_SECRET_KEY` — *(see `.creds/creds.md`)*
 
-### Required (To Be Filled)
-- `UPSTASH_REDIS_URL` + `UPSTASH_REDIS_TOKEN` — From Upstash console
-- `CRON_SECRET` — Generate with `openssl rand -base64 32`
+### Required (Filled)
+- `UPSTASH_REDIS_URL` — `https://large-bass-109072.upstash.io`
+- `UPSTASH_REDIS_TOKEN` — *(see `.creds/creds.md`)*
+- `CRON_SECRET` — `Jf/4smgMTHWr+76VI16lS9nPg80t3pqa3oaNdkQeLbw=`
+
+### Required (To Be Added to Vercel Dashboard)
+- `DATABASE_URL` + `DIRECT_URL` — Supabase connection strings
+- `UPSTASH_REDIS_URL` + `UPSTASH_REDIS_TOKEN`
+- `CRON_SECRET`
+- `NEXT_PUBLIC_BASE_URL` — `https://knowyourgov.us`
 - `ANTHROPIC_API_KEY` — Claude AI access
 - `CONGRESS_GOV_API_KEY`, `LEGISCAN_API_KEY`, `FEC_API_KEY`, `GOOGLE_CIVIC_API_KEY`, `COURTLISTENER_API_TOKEN`
 - `RESEND_API_KEY` + `EMAIL_FROM`

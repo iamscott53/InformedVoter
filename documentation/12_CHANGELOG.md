@@ -49,16 +49,17 @@
 
 ---
 
-## Planned Migration (Vercel + Supabase)
+## Completed Migration (Vercel + Supabase) — 2026-05-30
 
-The project is returning to its original hosting stack. See `13_VERCEL_SUPABASE_MIGRATION.md` for the full migration plan.
+The project has returned to its original hosting stack. See `13_VERCEL_SUPABASE_MIGRATION.md` for details.
 
-High-level changes:
-- **Remove:** Dockerfile, docker-compose.yml, nginx/, under-construction/, VPS scripts
-- **Modify:** Prisma schema (add `directUrl`), rate-limit.ts (Upstash support), middleware.ts (Vercel IP headers)
-- **Create:** `vercel.json` with cron schedules
-- **Add:** Supabase RLS policies on all tables
-- **Update:** Environment variables for Supabase + Upstash
+Completed changes:
+- **Removed:** `Dockerfile`, `docker-compose.yml`, `nginx/`, `scripts/`, `under-construction/` moved to `.deprecated/` (gitignored)
+- **Database:** Prisma schema updated with `directUrl` for Supabase; 4 new local gov tables created; RLS policies applied
+- **Cache:** Upstash Redis database `informedvoter-redis` provisioned in `us-east-1`
+- **Config:** `vercel.json` created with 13 cron schedules; `next.config.mjs` updated for Vercel
+- **Auth:** Middleware fixed — `/api/cron/*` no longer requires auth (rate-limited only); `/api/ai/*` still requires Bearer token
+- **Env:** `DATABASE_URL`, `DIRECT_URL`, `UPSTASH_REDIS_URL`, `UPSTASH_REDIS_TOKEN`, `CRON_SECRET` configured in `.env`
 
 ---
 
@@ -76,7 +77,7 @@ High-level changes:
 - Risky schema changes should be backed by PostgreSQL dumps before deployment.
 
 ### CI/CD
-- No automated deployment pipeline. Deploys are manual via `scripts/deploy.sh` (VPS).
+- Deploys via Vercel Git integration (push to `main`).
 - Migration to Vercel will enable Git-based auto-deployment.
 
 ### Monitoring
@@ -84,7 +85,7 @@ High-level changes:
 - Docker health checks and nginx logs are the primary monitoring tools (VPS).
 
 ### Security
-- **RLS not enabled** — current self-hosted PostgreSQL has no RLS. Supabase migration requires enabling RLS on all tables.
+- **RLS enabled** — all public tables now have SELECT policies; PII tables default-deny.
 - **No user authentication** — the app is fully public. If auth is added later, use Supabase Auth with proper RLS policies.
 
 ---
@@ -95,3 +96,4 @@ High-level changes:
 |------|--------|
 | 2026-05-30 | Comprehensive documentation updated with deep codebase analysis |
 | 2026-05-30 | Added Vercel + Supabase migration plan and deployment documentation |
+| 2026-05-30 | Migration completed: Supabase tables created, RLS applied, Upstash Redis provisioned, middleware fixed, docs updated |

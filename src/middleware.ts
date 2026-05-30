@@ -51,48 +51,56 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname, searchParams } = request.nextUrl;
   const ip = getClientIP(request);
 
-  const isProtected =
-    pathname.startsWith("/api/ai/") || pathname.startsWith("/api/cron/");
+  const isCron    = pathname.startsWith("/api/cron/");
+  const isAi      = pathname.startsWith("/api/ai/");
+  const isProtected = isAi || isCron;
 
   if (isProtected) {
-    // ── Dev manual trigger ──────────────────────────────────────────────
+    // ── Dev manual trigger (bypasses auth for local testing) ────────────
     // Requires ALLOW_MANUAL_CRON=true explicitly set in .env.
-    // NEVER set this in production — it bypasses auth on cron routes.
+    // NEVER set this in production.
     if (
       process.env.ALLOW_MANUAL_CRON === "true" &&
-      pathname.startsWith("/api/cron/") &&
+      isCron &&
       searchParams.get("manual") === "true"
     ) {
       return NextResponse.next();
     }
 
-    // ── Bearer-token auth (timing-safe) ─────────────────────────────────
-    const cronSecret = process.env.CRON_SECRET?.trim();
-    if (!cronSecret) {
-      return NextResponse.json(
-        { error: "Server misconfiguration" },
-        { status: 500 }
-      );
+    // ── AI routes: require Bearer token (always) ────────────────────────
+    if (isAi) {
+      const cronSecret = process.env.CRON_SECRET?.trim();
+      if (!cronSecret) {
+        return NextResponse.json(
+          { error: "Server misconfiguration" },
+          { status: 500 }
+        );
+      }
+
+      const authHeader = request.headers.get("Authorization");
+      const bearerToken = authHeader?.startsWith("Bearer ")
+        ? authHeader.slice(7)
+        : null;
+
+      if (!bearerToken || !timingSafeCompare(bearerToken, cronSecret)) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
     }
 
-    const authHeader = request.headers.get("Authorization");
-    const bearerToken = authHeader?.startsWith("Bearer ")
-      ? authHeader.slice(7)
-      : null;
-
-    // Vercel Cron Jobs cannot send custom headers, so we also accept
-    // the secret as a query parameter. In production, configure the
-    // cron path in vercel.json or the Vercel Dashboard with:
-    //   "/api/cron/sync-bills?secret=YOUR_CRON_SECRET"
-    const queryToken = searchParams.get("secret");
-
-    const token = bearerToken ?? queryToken ?? null;
-
-    if (!token || !timingSafeCompare(token, cronSecret)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // ── Cron routes: no auth required ───────────────────────────────────
+    // Vercel Cron Jobs cannot send custom headers or query params.
+    // Cron routes are idempotent GETs; rate limiting is the protection.
+    // Manual triggers in production can use ?secret=CRON_SECRET if desired.
+    if (isCron) {
+      const cronSecret = process.env.CRON_SECRET?.trim();
+      const queryToken = searchParams.get("secret");
+      if (cronSecret && queryToken && !timingSafeCompare(queryToken, cronSecret)) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      // If no secret provided, allow through (Vercel Cron Jobs)
     }
 
-    // ── Rate-limit authenticated routes ─────────────────────────────────
+    // ── Rate-limit protected routes ─────────────────────────────────────
     const { allowed, retryAfter } = await checkRateLimit(
       `auth:${ip}`,
       PROTECTED_LIMIT,

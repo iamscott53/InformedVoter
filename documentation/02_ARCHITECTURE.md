@@ -242,7 +242,7 @@ The client includes `extractJson()` to handle markdown code fences in model outp
 
 ## Data Sync (Cron Jobs)
 
-Cron jobs are triggered via host-level cron (see `scripts/cron-setup.sh`) or any HTTP scheduler.  
+Cron jobs are triggered via Vercel Cron Jobs (see `vercel.json`).  
 All cron routes live in `src/app/api/cron/<job>/route.ts`.
 
 | Job | Schedule | Source |

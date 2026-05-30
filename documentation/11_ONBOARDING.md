@@ -6,7 +6,7 @@
 
 ## Prerequisites
 
-- **Node.js** 22+ (matches Dockerfile)
+- **Node.js** 22+ (recommended)
 - **npm** (comes with Node.js)
 - **PostgreSQL** 16+ (local install or Docker) — OR a Supabase project
 - **Redis** 7+ (optional for local dev — rate limiting falls open if missing)
@@ -153,7 +153,7 @@ Try making a small visible change to verify the dev workflow:
 
 ### Build fails in Docker
 - Check that `output: "standalone"` is in `next.config.mjs`
-- Verify Dockerfile copy paths match the standalone output structure
+- Verify `next.config.mjs` does not set `output: "standalone"`
 
 ### Supabase connection errors
 - Ensure `?pgbouncer=true` is in `DATABASE_URL` (for app connections)

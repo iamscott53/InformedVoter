@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────
 // GET /api/cron/sync-members
 // Cron Job — sync federal legislators from Congress.gov API v3
-// Schedule: daily (configure in scripts/cron-setup.sh)
+// Schedule: daily (configure in vercel.json)
 //
 // Accepts ?manual=true to bypass the CRON_SECRET check in development.
 // ─────────────────────────────────────────────

@@ -8,16 +8,21 @@
 
 ```
 .
-├── .agents/
-│   └── skills/                  # Agent-specific skills
-├── .claude/
-│   ├── skills/                  # Claude Code skills
-│   ├── launch.json              # VS Code launch config
-│   └── settings.local.json      # Local editor settings
-├── .continue/
-│   └── skills/                  # Continue IDE skills
+├── .creds/                      # Credentials (gitignored)
+│   └── creds.md                 # Infrastructure secrets
+├── .deprecated/                 # Old VPS config & IDE artifacts (gitignored)
+│   ├── .agents/                 # Agent IDE config
+│   ├── .claude/                 # Claude Code settings
+│   ├── .continue/               # Continue IDE config
+│   ├── Dockerfile               # Multi-stage production build (VPS-only)
+│   ├── docker-compose.yml       # Production stack definition (VPS-only)
+│   ├── nginx/                   # Nginx configs (VPS-only)
+│   ├── scripts/                 # VPS deployment scripts
+│   ├── under-construction/      # Standalone maintenance page (VPS-only)
+│   └── README.md                # What's in this folder
 ├── .next/                       # Next.js build output (gitignored)
-├── documentation/               # PROJECT DOCUMENTATION (this folder)
+├── documentation/               # PROJECT DOCUMENTATION
+│   ├── CONTEXT.md               # AI session bootstrapper
 │   ├── 01_PROJECT_OVERVIEW.md
 │   ├── 02_ARCHITECTURE.md
 │   ├── 03_DATA_MODEL.md
@@ -31,13 +36,6 @@
 │   ├── 11_ONBOARDING.md
 │   ├── 12_CHANGELOG.md
 │   └── 13_VERCEL_SUPABASE_MIGRATION.md
-├── nginx/                       # Nginx configs (VPS-only; remove for Vercel)
-│   ├── snippets/
-│   │   ├── proxy-params.conf
-│   │   ├── security-headers.conf
-│   │   └── ssl.conf
-│   ├── default.conf
-│   └── nginx.conf
 ├── node_modules/                # Dependencies (gitignored)
 ├── prisma/
 │   ├── schema.prisma            # Single source of truth for DB schema
@@ -48,13 +46,6 @@
 │   ├── data/                    # Static data files
 │   ├── images/                  # Static images
 │   └── favicon.svg              # Site favicon
-├── scripts/                     # Deployment & infrastructure scripts
-│   ├── cron-setup.sh            # Install host-level cron jobs (VPS-only)
-│   ├── deploy.sh                # VPS deployment script (VPS-only)
-│   ├── init-ssl.sh              # Initialize Let's Encrypt (VPS-only)
-│   ├── vps-setup.sh             # Ubuntu 24.04 hardening (VPS-only)
-│   ├── vps-bootstrap.sh         # Minimal VPS bootstrap (VPS-only)
-│   └── postgres-init/           # PostgreSQL init scripts (VPS-only)
 ├── src/
 │   ├── app/                     # Next.js App Router
 │   │   ├── api/                 # API route handlers
@@ -197,21 +188,13 @@
 │   ├── types/
 │   │   └── index.ts             # Shared TypeScript types & enums
 │   └── middleware.ts            # Next.js middleware (rate limiting + auth)
-├── under-construction/          # Standalone maintenance page (VPS-only)
-│   ├── index.html
-│   ├── nginx.conf
-│   ├── default.conf
-│   └── docker-compose.yml
-├── .dockerignore                # (VPS-only)
 ├── .env                         # Local env vars (gitignored)
 ├── .env.example                 # Env var template
 ├── .env.production              # Production overrides (gitignored)
 ├── .gitignore
 ├── AGENTS.md                    # Agent instructions for AI coding assistants
-├── Dockerfile                   # Multi-stage production build (VPS-only)
 ├── README.md                    # Human-readable project overview
 ├── SECURITY.md                  # Security policy
-├── docker-compose.yml           # Production stack (VPS-only)
 ├── next-env.d.ts                # Next.js TypeScript declarations
 ├── next.config.mjs              # Next.js config (standalone, security headers)
 ├── package.json
@@ -226,15 +209,16 @@
 
 | File | Purpose |
 |------|---------|
-| `next.config.mjs` | Standalone output (VPS), security headers, image remotePatterns |
+| `next.config.mjs` | Security headers, image remotePatterns |
 | `postcss.config.mjs` | Tailwind CSS v4 PostCSS plugin |
 | `tsconfig.json` | Strict TypeScript, `@/*` path alias to `./src/*` |
 | `prisma/schema.prisma` | Database schema — single source of truth |
-| `docker-compose.yml` | Production services: Postgres, Redis, app, nginx, certbot (VPS) |
-| `Dockerfile` | Multi-stage Node 22 Alpine build (VPS) |
-| `nginx/nginx.conf` | Reverse proxy, gzip, rate-limit zones (VPS) |
-| `nginx/default.conf` | Server blocks, SSL configuration (VPS) |
+| `vercel.json` | Vercel deploy config + cron job schedules |
 | `.env.example` | Template for all environment variables |
+| `.deprecated/docker-compose.yml` | VPS services (Postgres, Redis, nginx, certbot) |
+| `.deprecated/Dockerfile` | Multi-stage Node 22 Alpine build (VPS) |
+| `.deprecated/nginx/nginx.conf` | Reverse proxy, gzip, rate-limit zones (VPS) |
+| `.deprecated/nginx/default.conf` | Server blocks, SSL configuration (VPS) |
 
 ---
 
@@ -244,7 +228,7 @@
 |--------|---------|---------|
 | `dev` | `next dev --turbopack` | Local development with Turbopack |
 | `postinstall` | `prisma generate` | Auto-generate Prisma client after install |
-| `build` | `next build` | Production build (standalone output) |
+| `build` | `next build` | Production build |
 | `start` | `next start` | Start production server |
 | `lint` | `next lint` | ESLint |
 | `db:push` | `prisma db push` | Push schema to database |
@@ -268,29 +252,9 @@ Usage examples:
 
 ---
 
-## Files Flagged for Removal (Vercel Migration)
+## Deprecation History
 
-When migrating to Vercel + Supabase, these files become unnecessary:
-
-```
-Dockerfile
-docker-compose.yml
-nginx/
-├── nginx.conf
-├── default.conf
-└── snippets/
-scripts/
-├── deploy.sh
-├── cron-setup.sh
-├── vps-setup.sh
-├── vps-bootstrap.sh
-├── init-ssl.sh
-└── postgres-init/
-under-construction/
-├── index.html
-├── nginx.conf
-├── default.conf
-└── docker-compose.yml
-```
-
-Consider moving them to an `archive/` folder or deleting them after successful migration.
+VPS-era files (Docker, Nginx, deployment scripts, under-construction pages) and IDE
+config folders (`.claude/`, `.agents/`, `.continue/`) have been moved to
+`.deprecated/`. These are gitignored and retained only for reference during the
+transition back to Vercel + Supabase hosting.

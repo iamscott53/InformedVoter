@@ -61,7 +61,7 @@ Set in `next.config.mjs` and applied to all routes:
 | `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` |
 | `Content-Security-Policy` | `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://theunitedstates.io https://bioguide.congress.gov https://*.oyez.org; connect-src 'self' https://api.bigdatacloud.net https://ipapi.co https://api.usaspending.gov; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'` |
 
-Nginx adds additional headers via `nginx/snippets/security-headers.conf`.
+Nginx headers are replaced by Next.js `headers()` config in `next.config.mjs`.
 
 ---
 
@@ -77,7 +77,7 @@ Nginx adds additional headers via `nginx/snippets/security-headers.conf`.
 
 ## Docker Hardening
 
-**File:** `Dockerfile`
+**File:** `.deprecated/Dockerfile`
 
 - Multi-stage build (builder + runner)
 - **Non-root user:** `nextjs` (uid 1001) in runner stage
@@ -89,7 +89,7 @@ Nginx adds additional headers via `nginx/snippets/security-headers.conf`.
 
 ## VPS Hardening
 
-**File:** `scripts/vps-setup.sh`
+**File:** `.deprecated/scripts/vps-setup.sh`
 
 - UFW firewall configuration
 - fail2ban for brute-force protection

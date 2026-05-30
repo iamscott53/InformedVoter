@@ -75,7 +75,7 @@ The project is returning to **Vercel + Supabase**. See `08_DEPLOYMENT.md` and `1
 
 - **Local Path:** `c:\Shared\git\InformedVoter`
 - **Primary Branch:** `main`
-- **Deployment:** Manual via `scripts/deploy.sh` on VPS (current) → Vercel Git integration (planned)
+- **Deployment:** Vercel Git integration (current)
 
 ---
 
