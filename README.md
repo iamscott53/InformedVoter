@@ -68,8 +68,8 @@ A nonpartisan civic information platform — Congress, the Supreme Court, federa
 | Caching | Upstash Redis |
 | Animations | Framer Motion |
 | Icons | Lucide React |
-| Analytics | Plausible or self-hosted analytics |
-| Hosting | Self-hosted VPS with Docker Compose |
+| Analytics | @vercel/analytics |
+| Hosting | Vercel |
 
 ## Data Sources
 
@@ -105,7 +105,7 @@ Cron jobs keep data fresh automatically:
 ### Prerequisites
 
 - Node.js 18+
-- PostgreSQL database (self-hosted via Docker Compose)
+- Supabase PostgreSQL account (or local PostgreSQL for dev)
 
 ### Installation
 
@@ -139,9 +139,12 @@ cp .env.example .env
 | `FEC_API_KEY` | OpenFEC campaign finance data |
 | `LEGISCAN_API_KEY` | State + federal bill text and roll calls |
 | `GOOGLE_CIVIC_API_KEY` | Elections and polling places |
-| `UPSTASH_REDIS_URL` | Redis caching URL |
-| `UPSTASH_REDIS_TOKEN` | Redis authentication token |
-| `CRON_SECRET` | Secret for securing cron endpoints |
+| `UPSTASH_REDIS_URL` | Upstash Redis REST URL |
+| `UPSTASH_REDIS_TOKEN` | Upstash Redis REST token |
+| `CRON_SECRET` | Secret for securing AI endpoints |
+| `RESEND_API_KEY` | Email delivery API key |
+| `EMAIL_FROM` | Sender address (e.g., `InformedVoter <notifications@knowyourgov.us>`) |
+| `NEXT_PUBLIC_BASE_URL` | Public site URL (e.g., `https://knowyourgov.us`) |
 
 ### Database Setup
 
@@ -171,11 +174,11 @@ npm start
 src/
 ├── app/                        # Next.js App Router pages and API routes
 │   ├── api/                    # REST API endpoints and cron jobs
-│   │   ├── cron/               # 10 scheduled sync/analysis jobs
+│   │   ├── cron/               # 13 scheduled sync/analysis jobs
 │   │   ├── ai/                 # AI analysis endpoints
 │   │   ├── scotus/             # SCOTUS cases and justices API
 │   │   └── ...                 # Search, agencies, bills, candidates, etc.
-│   ├── state/[stateAbbr]/      # State-specific pages (7 sub-pages)
+│   ├── state/[stateAbbr]/      # State-specific pages (8 sub-pages)
 │   ├── judicial/               # Supreme Court dashboard, cases, justices
 │   ├── agencies/               # Federal agencies directory
 │   ├── candidate/              # Candidate detail pages

@@ -63,16 +63,7 @@ npx tsx prisma/seed-governors.mjs
 npx tsx prisma/seed-elections.mjs
 ```
 
-### Option B: Docker Compose (Local Postgres + Redis)
-
-```bash
-# Start only Postgres and Redis from the compose file
-docker compose up -d postgres redis
-
-# The app container is not needed for local dev — use npm run dev instead
-```
-
-### Option C: Supabase (Target Production Setup)
+### Option B: Supabase (Recommended)
 
 ```bash
 # 1. Create a project at https://app.supabase.com
@@ -126,8 +117,7 @@ Try making a small visible change to verify the dev workflow:
 | `npm run db:push` | Push schema changes to database |
 | `npm run db:seed` | Run seed scripts |
 | `npm run db:studio` | Open Prisma Studio |
-| `docker compose up -d` | Start full VPS stack |
-| `docker compose logs -f app` | Tail app logs |
+
 
 ---
 
@@ -144,16 +134,16 @@ Try making a small visible change to verify the dev workflow:
 ### "Redis connection refused"
 - Redis is optional for local development.
 - Rate limiting will silently allow all requests.
-- To enable Redis, start it with `docker compose up -d redis` or install locally.
+- To enable Redis locally, set `UPSTASH_REDIS_URL` and `UPSTASH_REDIS_TOKEN` in `.env`, or install Redis locally and use `redis://localhost:6379`.
 
 ### "Unauthorized" on cron routes locally
 - Set `ALLOW_MANUAL_CRON=true` in `.env`
 - Append `?manual=true` to the cron URL
 - **Never commit `.env` with this enabled.**
 
-### Build fails in Docker
-- Check that `output: "standalone"` is in `next.config.mjs`
-- Verify `next.config.mjs` does not set `output: "standalone"`
+### Build fails on Vercel
+- Ensure `output: "standalone"` is NOT in `next.config.mjs` (Vercel handles output automatically)
+- Verify all required env vars are set in Vercel Dashboard
 
 ### Supabase connection errors
 - Ensure `?pgbouncer=true` is in `DATABASE_URL` (for app connections)

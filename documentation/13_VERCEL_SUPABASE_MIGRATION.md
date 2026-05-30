@@ -6,7 +6,7 @@
 
 ## Overview
 
-This project is migrating **from** a self-hosted VPS (Docker Compose + Nginx + Let's Encrypt) **to** its original stack: **Vercel (hosting) + Supabase (database) + Upstash Redis (caching)**.
+This project has migrated **from** a self-hosted VPS (Docker Compose + Nginx + Let's Encrypt) **to** its original stack: **Vercel (hosting) + Supabase (database) + Upstash Redis (caching)**.
 
 This guide covers every file change, environment variable, and step needed to complete the migration.
 
@@ -171,32 +171,24 @@ CREATE POLICY "Subscriber read by token" ON "Subscriber"
 
 #### Update `src/lib/rate-limit.ts`
 
-The current implementation only supports `ioredis`. You need to add Upstash REST support:
+**Status:** ✅ Already updated. The file now uses `@upstash/redis` exclusively:
 
 ```typescript
-// Add at the top of rate-limit.ts
-import { Redis as UpstashRedis } from "@upstash/redis";
+import { Redis } from "@upstash/redis";
 
-// In initRedis(), add:
-if (redisUrl.startsWith("https://") && redisToken) {
-  const client = new UpstashRedis({
-    url: redisUrl,
-    token: redisToken,
+let redis: Redis | null = null;
+if (process.env.UPSTASH_REDIS_URL && process.env.UPSTASH_REDIS_TOKEN) {
+  redis = new Redis({
+    url: process.env.UPSTASH_REDIS_URL,
+    token: process.env.UPSTASH_REDIS_TOKEN,
   });
-  // Note: Upstash uses different commands — you'll need to adapt checkRateLimit
-  // to use Upstash's REST API instead of ioredis INCR/EXPIRE
-  return client as any; // Or better: create a unified interface
 }
 ```
 
-> **Important:** The `checkRateLimit` function uses `INCR` and `EXPIRE` commands. Upstash Redis supports these, but the API is different (REST vs. TCP). You need to either:
-> 1. Use `@upstash/redis` with its `incr()` and `expire()` methods, OR
-> 2. Switch to **Vercel KV** (`@vercel/kv`) which has a simpler API
-
-Recommended: Switch to `@vercel/kv`:
+The `checkRateLimit` function uses `redis.incr()` and `redis.expire()` (Upstash REST API methods).
 
 ```bash
-npm install @vercel/kv
+npm install @upstash/redis
 ```
 
 Then rewrite `rate-limit.ts`:

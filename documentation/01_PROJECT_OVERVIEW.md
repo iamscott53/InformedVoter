@@ -23,18 +23,18 @@ Government data is fragmented, jargon-heavy, and difficult to navigate. Informed
 
 | Layer | Technology | Version | Purpose |
 |-------|-----------|---------|---------|
-| Framework | Next.js | 16.2+ | App Router, standalone output, Turbopack in dev |
+| Framework | Next.js | 16.2+ | App Router, Turbopack in dev |
 | Language | TypeScript | 5.9+ | Strict mode, `@/*` path aliases |
 | Styling | Tailwind CSS | v4 | `@import "tailwindcss"` in globals.css |
 | ORM | Prisma | 5.22 | PostgreSQL-only schema + client generation |
-| Database | PostgreSQL | 16 | Self-hosted via Docker Compose |
-| Cache / Rate-limit | Redis | 7 | ioredis client; fails open if unavailable |
+| Database | Supabase PostgreSQL | 16 | Managed, with connection pooler |
+| Cache / Rate-limit | Upstash Redis | — | @upstash/redis REST client; edge-compatible |
 | AI | Anthropic SDK | ^0.85 | `claude-haiku-4-5` (cheap), `claude-sonnet-4-5` (complex) |
 | State Management | TanStack Query | v5 | React Query for server-state caching |
 | Email | Resend | ^6.10 | Verification + digest emails |
 | Icons | Lucide React | ^0.577 | Icon library |
 | Animations | Framer Motion | ^12.38 | Page transitions & micro-interactions |
-| Hosting | Docker Compose | — | Ubuntu 24.04 VPS: Nginx + Certbot + Postgres + Redis + Next.js |
+| Hosting | Vercel | — | Serverless, Edge CDN, image optimization, cron jobs |
 
 ---
 
@@ -50,14 +50,14 @@ This project has been through two hosting configurations:
 - **Analytics:** Vercel Web Analytics
 
 ### Current Stack (2026)
-- **Hosting:** Self-hosted VPS (Ubuntu 24.04) via Docker Compose
-- **Database:** Self-hosted PostgreSQL 16
-- **Cache:** Self-hosted Redis 7
-- **Cron:** Host-level cron (crontab)
-- **Reverse Proxy:** Nginx + Let's Encrypt
+- **Hosting:** Vercel (serverless)
+- **Database:** Supabase PostgreSQL (managed)
+- **Cache:** Upstash Redis
+- **Cron:** Vercel Cron Jobs (`vercel.json`)
+- **Analytics:** @vercel/analytics
 
-### Planned Migration
-The project is returning to **Vercel + Supabase**. See `08_DEPLOYMENT.md` and `13_VERCEL_SUPABASE_MIGRATION.md` for the migration plan.
+### Migration History
+Originally on Vercel + Supabase → moved to VPS/Docker → returned to Vercel + Supabase. VPS files archived in `.deprecated/`.
 
 ---
 
@@ -65,7 +65,7 @@ The project is returning to **Vercel + Supabase**. See `08_DEPLOYMENT.md` and `1
 
 | Environment | URL | Notes |
 |-------------|-----|-------|
-| Production (VPS) | `https://knowyourgov.us` | Self-hosted Docker stack |
+| Production | `https://knowyourgov.us` | Vercel + Supabase + Upstash |
 | Original Vercel | `https://informed-voter.vercel.app` | Historical |
 | Local Dev | `http://localhost:3000` | `npm run dev` with Turbopack |
 
@@ -84,7 +84,7 @@ The project is returning to **Vercel + Supabase**. See `08_DEPLOYMENT.md` and `1
 - **Mature MVP** — Core features are built and deployed.
 - **No automated test suite** — Testing is entirely manual.
 - **No formal migration system** — Schema changes via `prisma db push`.
-- **Self-hosted** — Currently on VPS; migrating back to Vercel + Supabase.
+- **Hosted on Vercel + Supabase** — Migration from VPS completed.
 
 ---
 

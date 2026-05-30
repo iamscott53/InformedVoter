@@ -6,18 +6,17 @@
 
 ## Deployment Target: Vercel + Supabase
 
-This project is migrating from a **self-hosted VPS (Docker Compose)** back to its original stack of **Vercel (hosting) + Supabase (database) + Upstash Redis (caching/rate limiting)**.
+This project is hosted on **Vercel (hosting) + Supabase (database) + Upstash Redis (caching/rate limiting)**. It was previously on a self-hosted VPS (Docker Compose); VPS files are archived in `.deprecated/`.
 
 ---
 
-## Current VPS Stack (Being Replaced)
+## Previous VPS Stack (Archived)
 
-- **Host:** Ubuntu 24.04 VPS (1-2 vCPU, 2-4 GB RAM)
-- **IP:** `45.32.221.91`
-- **Services:** PostgreSQL 16, Redis 7, Next.js (Docker), Nginx, Certbot
-- **Deployment:** Vercel Git integration (push to `main` triggers deploy)
+The self-hosted VPS stack has been moved to `.deprecated/`:
+- Ubuntu 24.04 VPS with Docker Compose, Nginx, Certbot
+- Files: `Dockerfile`, `docker-compose.yml`, `nginx/`, `scripts/`, `under-construction/`
 
-See `09_FILE_STRUCTURE.md` for the full list of VPS-specific files.
+See `09_FILE_STRUCTURE.md` and `.deprecated/README.md` for details.
 
 ---
 
@@ -87,10 +86,7 @@ datasource db {
 
 ### 3. `src/lib/rate-limit.ts`
 
-**Current:** Only implements `ioredis` (local Redis).  
-**Required:** Add Upstash Redis REST client support.
-
-The dependency `@upstash/redis` is already in `package.json` but the init code returns `null` for Upstash URLs.
+**Status:** ✅ Updated to `@upstash/redis` REST client. Uses `UPSTASH_REDIS_URL` and `UPSTASH_REDIS_TOKEN` from environment variables.
 
 ### 4. `src/middleware.ts`
 

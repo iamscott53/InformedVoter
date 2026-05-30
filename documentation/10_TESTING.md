@@ -110,25 +110,16 @@ Verify `DataSyncLog` table after each run for success/failure records.
 npm run db:studio    # Visual database inspector
 ```
 
-### Redis (Current VPS Stack)
+### Redis (Upstash)
 ```bash
-# Connect to Redis container
-docker compose exec redis redis-cli
-# Check keys
-KEYS rl:*
+# Check Redis connectivity via REST API
+curl "https://your-db.upstash.io/ping" \
+  -H "Authorization: Bearer $UPSTASH_REDIS_TOKEN"
 ```
 
-### Logs (Current VPS Stack)
-```bash
-# App logs
-docker compose logs -f app
-
-# Nginx logs
-docker compose logs -f nginx
-
-# Postgres logs
-docker compose logs -f postgres
-```
+### Logs (Vercel)
+- View logs in Vercel Dashboard → Project → Logs
+- Or use Vercel CLI: `vercel logs --json`
 
 ### Local Dev
 ```bash
@@ -136,11 +127,8 @@ npm run dev          # Turbopack dev server with hot reload
 ```
 
 ### Rate Limiting
-- If APIs return 429 unexpectedly, check Redis connectivity:
-  ```bash
-  docker compose exec redis redis-cli ping
-  ```
-- In development, Redis is optional — rate limiting is disabled if Redis is unavailable.
+- If APIs return 429 unexpectedly, check `UPSTASH_REDIS_URL` and `UPSTASH_REDIS_TOKEN` env vars
+- In development, Redis is optional — rate limiting fails open if Redis is unavailable
 
 ### Supabase (After Migration)
 ```bash

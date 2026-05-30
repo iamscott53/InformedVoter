@@ -9,9 +9,9 @@
 
 **InformedVoter** (`https://knowyourgov.us`) is a nonpartisan US civic information platform — the "Wikipedia for government." It helps voters research representatives, track legislation, follow Supreme Court cases, explore campaign finance, find polling places, and prepare for local city council meetings — all explained in plain English, often with AI-generated summaries.
 
-**Stack:** Next.js 16 + TypeScript + Tailwind CSS v4 + Prisma 5.22 + PostgreSQL 16 + Redis 7 + Anthropic Claude + Resend email.
+**Stack:** Next.js 16 + TypeScript + Tailwind CSS v4 + Prisma 5.22 + Supabase PostgreSQL 16 + Upstash Redis + Anthropic Claude + Resend email.
 
-**Hosting History:** Originally on **Vercel + Supabase + Upstash Redis** → migrated to **self-hosted VPS (Docker Compose + Nginx)** → now migrating **back to Vercel + Supabase**.
+**Hosting History:** Originally on **Vercel + Supabase + Upstash Redis** → migrated to **self-hosted VPS (Docker Compose + Nginx)** → now **returned to Vercel + Supabase**.
 
 **Current Status:** Migration to Vercel + Supabase is complete. All Supabase tables created, RLS policies applied, Upstash Redis provisioned, middleware fixed for Vercel Cron Jobs. Build passes. Ready for Vercel env var configuration and deployment.
 
@@ -348,13 +348,19 @@ npm run db:studio        # Prisma Studio GUI
 
 ## 14. Next Steps (Immediate Action Items)
 
-1. **Run `supabase/missing-tables.sql`** in Supabase Dashboard → SQL Editor
-2. **Run `supabase/rls-policies.sql`** in Supabase Dashboard → SQL Editor
-3. **Set Upstash Redis** URL + token in Vercel environment variables
-4. **Generate `CRON_SECRET`** and add to Vercel env vars
-5. **Add all data API keys** to Vercel env vars
-6. **Connect GitHub repo to Vercel** and deploy
-7. **Verify deployment** by checking `/api/health`, homepage, and a few data pages
+**Completed:**
+- ✅ Supabase tables created (`Municipality`, `LocalMeeting`, `MeetingAgendaItem`, `SubmittedMeeting`)
+- ✅ RLS policies applied
+- ✅ Upstash Redis provisioned (`informedvoter-redis` in `us-east-1`)
+- ✅ CRON_SECRET generated
+- ✅ Middleware fixed for Vercel Cron Jobs
+- ✅ Build passes
+
+**Remaining:**
+1. **Add env vars to Vercel Dashboard:** `DATABASE_URL`, `DIRECT_URL`, `UPSTASH_REDIS_URL`, `UPSTASH_REDIS_TOKEN`, `CRON_SECRET`, `NEXT_PUBLIC_BASE_URL`
+2. **Add optional API keys** when ready: `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, data API keys
+3. **Deploy:** Push to `main` triggers Vercel auto-deploy
+4. **Verify:** Check `/api/health`, homepage, and a few data pages
 
 ---
 
