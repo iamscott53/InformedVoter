@@ -8,6 +8,9 @@ node_modules/
 .env.*
 !.env.example
 
+# Credentials - NEVER commit or deploy
+.creds/
+
 # next.js
 .next/
 out/
