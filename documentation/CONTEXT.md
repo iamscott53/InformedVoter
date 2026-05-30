@@ -305,7 +305,7 @@ User → Vercel Edge Network (CDN + SSL)
 ### Required (Filled)
 - `UPSTASH_REDIS_URL` — `https://large-bass-109072.upstash.io`
 - `UPSTASH_REDIS_TOKEN` — *(see `.creds/creds.md`)*
-- `CRON_SECRET` — `Jf/4smgMTHWr+76VI16lS9nPg80t3pqa3oaNdkQeLbw=`
+- `CRON_SECRET` — Generate with `openssl rand -base64 32`
 
 ### Required (To Be Added to Vercel Dashboard)
 - `DATABASE_URL` + `DIRECT_URL` — Supabase connection strings

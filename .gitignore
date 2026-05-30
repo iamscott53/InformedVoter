@@ -50,7 +50,7 @@ AIDocs/
 .claude/
 .continue/
 CLAUDE.md
-AGENTS.md
+# AGENTS.md is intentionally tracked — it contains project instructions for AI agents
 .cursor/
 .cursorignore
 .cursorindexingignore
@@ -78,5 +78,3 @@ secrets/
 
 # Deprecated files (old VPS config, IDE artifacts, etc.)
 .deprecated/
-
-.vercel

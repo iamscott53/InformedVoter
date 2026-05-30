@@ -315,7 +315,7 @@ In Vercel Dashboard → Project → Settings → Environment Variables:
 | `EMAIL_FROM` | `InformedVoter <notifications@knowyourgov.us>` | Production |
 | `UPSTASH_REDIS_URL` | `https://large-bass-109072.upstash.io` | Production, Preview |
 | `UPSTASH_REDIS_TOKEN` | *(see `.creds/creds.md`)* | Production, Preview |
-| `CRON_SECRET` | `Jf/4smgMTHWr+76VI16lS9nPg80t3pqa3oaNdkQeLbw=` | Production, Preview |
+| `CRON_SECRET` | Generate with `openssl rand -base64 32` | Production, Preview |
 | `CONGRESS_GOV_API_KEY` | Congress.gov API key | Production |
 | `LEGISCAN_API_KEY` | LegiScan API key | Production |
 | `FEC_API_KEY` | OpenFEC API key | Production |
