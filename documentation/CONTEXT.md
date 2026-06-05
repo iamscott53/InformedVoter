@@ -13,7 +13,7 @@
 
 **Hosting History:** Originally on **Vercel + Supabase + Upstash Redis** → migrated to **self-hosted VPS (Docker Compose + Nginx)** → now **returned to Vercel + Supabase**.
 
-**Current Status:** Migration to Vercel + Supabase is complete. All Supabase tables created, RLS policies applied, Upstash Redis provisioned, middleware fixed for Vercel Cron Jobs. Build passes. Ready for Vercel env var configuration and deployment.
+**Current Status:** Deployed to Vercel + Supabase + Upstash Redis. Production alias: `https://informed-voter.vercel.app`. All Supabase tables created, RLS policies applied, middleware active, 13 cron jobs scheduled. UAT completed (190+ cases, 177 passes, 0 real failures). All 3 UAT issues fixed and verified in production. Security audit deployed (18 hardening measures).
 
 ---
 
@@ -282,7 +282,7 @@ User → Vercel Edge Network (CDN + SSL)
 
 | Issue | Context | Decision Needed |
 |-------|---------|-----------------|
-| **PAC Recipients API** | `/api/pac-recipients` requires `committeeIds` — no list-all support | Add `GET /api/pac-recipients?limit=N` without required `committeeIds` |
+| **Loading UX trade-off** | Root `loading.tsx` removed to fix 404 statuses | Use inline `<Suspense>` with fallback JSX for granular loading states without breaking `notFound()` |
 | **Optional API keys** | `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, data API keys not yet configured | Add when ready; app works without them (syncs skip missing sources) |
 | **No automated tests** | Zero test suite (Jest, Vitest, Playwright, Cypress) | Add tests? Which runner? |
 | **No formal DB migrations** | Uses `prisma db push` only | Switch to `prisma migrate dev` + Supabase migrations? |
@@ -357,13 +357,19 @@ npm run db:studio        # Prisma Studio GUI
 - ✅ All Vercel env vars configured
 - ✅ Database connected (pooler endpoint corrected `aws-0` → `aws-1`)
 - ✅ Security audit deployed (18 hardening measures)
-- ✅ UAT completed (190+ cases, 175 passes)
+- ✅ UAT completed (190+ cases, 177 passes, 0 real failures)
 
 **Remaining:**
-1. **Fix 3 UAT issues:** PAC recipients list-all, city 404 status, unsubscribe POST status code
-2. **Add optional API keys** when ready: `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, data API keys
-3. **Add automated tests** — Jest/Vitest + Playwright
-4. **Monitor:** Check `/api/health`, cron job logs, DataSyncLog table
+1. **Add optional API keys** when ready: `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, data API keys
+2. **Add automated tests** — Jest/Vitest + Playwright
+3. **Monitor:** Check `/api/health`, cron job logs, DataSyncLog table
+
+**Recent Fixes (2026-06-05):**
+- PAC recipients API now supports list-all mode (no `committeeIds` required)
+- City 404 status fixed by removing root `loading.tsx` Suspense boundary
+- Unsubscribe returns 400 for invalid tokens
+- SCOTUS detail pages fixed (`isomorphic-dompurify` → `sanitize-html`)
+- Security audit deployed (18 hardening measures)
 
 ---
 

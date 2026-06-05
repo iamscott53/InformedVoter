@@ -50,7 +50,7 @@ All pages live under `src/app/` and use the Next.js App Router file convention.
 | `layout.tsx` | Root layout with SEO meta, skip-link, providers |
 | `error.tsx` | Global error boundary |
 | `not-found.tsx` | 404 page |
-| `loading.tsx` | Global loading UI |
+| ~~`loading.tsx`~~ | ~~Global loading UI~~ *(removed — Suspense boundary prevented 404 status codes)* |
 | `globals.css` | Tailwind v4 import + CSS custom properties |
 | `providers.tsx` | TanStack Query client wrapper |
 | `sitemap.ts` | Dynamic sitemap generation (states, justices, cases, candidates, agencies) |

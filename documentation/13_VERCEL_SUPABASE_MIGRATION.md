@@ -1,6 +1,6 @@
 # 13 — Vercel + Supabase Migration Guide
 
-> **Last Updated:** 2026-05-30
+> **Last Updated:** 2026-06-05
 
 ---
 
@@ -61,7 +61,7 @@ In Supabase Dashboard → Project Settings → Database:
 
 | Connection | URL Pattern | Use Case |
 |------------|-------------|----------|
-| **Connection Pooler** | `postgresql://postgres.[ref]:[pass]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true` | App runtime (Vercel) |
+| **Connection Pooler** | `postgresql://postgres.[ref]:[pass]@aws-1-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true` | App runtime (Vercel) |
 | **Direct Connection** | `postgresql://postgres.[ref]:[pass]@db.[ref].supabase.co:5432/postgres` | Migrations, seeds, Prisma Studio |
 
 #### 1.3 Update Prisma Schema
@@ -162,7 +162,7 @@ CREATE POLICY "Subscriber read by token" ON "Subscriber"
 #### Option A: Upstash Redis
 1. Go to [https://console.upstash.com](https://console.upstash.com)
 2. Create a new Redis database
-3. Copy `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`
+3. Copy `UPSTASH_REDIS_URL` and `UPSTASH_REDIS_TOKEN`
 
 #### Option B: Vercel KV
 1. In Vercel Dashboard → Storage → Create KV Database
@@ -411,7 +411,7 @@ vercel --prod
 - Check Supabase IP allowlist includes Vercel's IP ranges
 
 ### "Rate limiting not working"
-- Verify `KV_URL` / `UPSTASH_REDIS_REST_URL` is set
+- Verify `KV_URL` / `UPSTASH_REDIS_URL` is set
 - Check that `rate-limit.ts` was updated to use the new Redis client
 
 ### "Cron jobs returning 401"

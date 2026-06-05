@@ -1,6 +1,6 @@
 # 08 — Deployment
 
-> **Last Updated:** 2026-05-30
+> **Last Updated:** 2026-06-05
 
 ---
 
@@ -132,7 +132,7 @@ Create `vercel.json` at project root with cron schedules:
 
 | Variable | Source | Value Example |
 |----------|--------|---------------|
-| `DATABASE_URL` | Supabase → Connection Pooler | `postgresql://postgres.[project]:[password]@aws-0-us-west-1.pooler.supabase.com:6543/postgres?pgbouncer=true` |
+| `DATABASE_URL` | Supabase → Connection Pooler | `postgresql://postgres.[project]:[password]@aws-1-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true` |
 | `DIRECT_URL` | Supabase → Direct Connection | `postgresql://postgres.[project]:[password]@db.[project].supabase.co:5432/postgres` |
 | `ANTHROPIC_API_KEY` | Anthropic Dashboard | `sk-ant-api03-...` |
 | `NEXT_PUBLIC_BASE_URL` | Vercel Project Settings | `https://knowyourgov.us` or `https://informed-voter.vercel.app` |
@@ -141,8 +141,8 @@ Create `vercel.json` at project root with cron schedules:
 
 | Variable | Source | Notes |
 |----------|--------|-------|
-| `UPSTASH_REDIS_REST_URL` | Upstash Console | `https://...upstash.io` |
-| `UPSTASH_REDIS_REST_TOKEN` | Upstash Console | Long token string |
+| `UPSTASH_REDIS_URL` | Upstash Console | `https://...upstash.io` |
+| `UPSTASH_REDIS_TOKEN` | Upstash Console | Long token string |
 | `KV_URL` / `KV_REST_API_URL` | Vercel KV | If using Vercel KV instead |
 
 ### For Data Sync
@@ -293,7 +293,7 @@ vercel --prod
 ## Architecture Comparison
 
 ```
-Current (VPS/Docker):                    Target (Vercel + Supabase):
+Previous (VPS/Docker):                   Current (Vercel + Supabase):
 ┌─────────────┐                          ┌─────────────┐
 │   Nginx     │ 443/80                   │  Vercel Edge │ CDN + SSL
 │  (reverse)  │                          │   Network    │

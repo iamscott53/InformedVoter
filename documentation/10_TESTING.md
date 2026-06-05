@@ -23,7 +23,7 @@ If tests are added, place the configuration at the project root and update this 
 
 A full UAT was completed on 2026-06-05 against the production environment.
 - **190+ test cases** executed
-- **175 passed**, **2 critical issues fixed during testing**, **3 active issues flagged**
+- **177 passed**, **3 issues fixed during testing**, **0 active issues remaining**
 - See `UAT_REPORT.md` for the complete report with remediation plan
 
 ### Automated Test Scripts

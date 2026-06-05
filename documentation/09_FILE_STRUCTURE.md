@@ -126,7 +126,7 @@
 │   │   ├── robots.ts            # robots.txt
 │   │   ├── error.tsx            # Global error boundary
 │   │   ├── not-found.tsx        # 404 page
-│   │   └── loading.tsx          # Global loading UI
+│   │   # loading.tsx removed — root Suspense boundary prevented 404 status codes
 │   ├── components/
 │   │   ├── ui/                  # Reusable atomic UI components
 │   │   │   ├── AiDisclaimer.tsx
@@ -182,7 +182,7 @@
 │   │   ├── pac-catalog.ts       # PAC metadata catalog
 │   │   ├── rate-limit.ts        # Redis rate limiter
 │   │   ├── resend.ts            # Resend email client
-│   │   ├── sanitize.ts          # DOMPurify wrapper
+│   │   ├── sanitize.ts          # sanitize-html wrapper (avoids ESM/CJS crash in serverless)
 │   │   └── utils.ts             # General utilities (cn, formatters)
 │   ├── types/
 │   │   └── index.ts             # Shared TypeScript types & enums

@@ -86,7 +86,7 @@ src/
     robots.ts            # robots.txt
     error.tsx            # Global error boundary
     not-found.tsx        # 404 page
-    loading.tsx          # Global loading UI
+    # loading.tsx removed — root Suspense boundary prevented 404 status codes
 
   components/
     ui/                  # Reusable badges, cards, selectors, disclaimers
@@ -102,7 +102,7 @@ src/
     auth.ts              # Timing-safe cron secret verification helper
     resend.ts            # Email client setup
     email/               # HTML email templates (verification, digest)
-    sanitize.ts          # DOMPurify wrapper for external HTML
+    sanitize.ts          # sanitize-html wrapper for external HTML (avoids ESM/CJS crash in serverless)
     utils.ts             # General helpers (cn, formatDate, formatCurrency, slugify, party/status colors)
     agencies.ts          # Static agency catalog
     fec.ts               # FEC / OpenFEC helpers
@@ -236,7 +236,7 @@ Runs on **all** `/api/*` routes:
 3. **Security Headers** — Set in `next.config.mjs`:
    - `Content-Security-Policy` (strict, with `unsafe-inline` for scripts/styles)
    - `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Strict-Transport-Security` (with `preload`), `Permissions-Policy`
-4. **Input Sanitization** — DOMPurify (via `isomorphic-dompurify`) for rendering external HTML. Allowed tags are restricted to safe markup in `src/lib/sanitize.ts`.
+4. **Input Sanitization** — `sanitize-html` for rendering external HTML. Allowed tags are restricted to safe markup in `src/lib/sanitize.ts`. Replaced `isomorphic-dompurify` (which crashed in Vercel serverless due to `jsdom` → `parse5@8` ESM-only dependency).
 5. **Supabase RLS** — Row Level Security policies on all tables. Public read access for civic data; default-deny for PII tables.
 
 ---

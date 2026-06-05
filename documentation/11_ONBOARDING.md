@@ -1,6 +1,6 @@
 # 11 — Onboarding
 
-> **Last Updated:** 2026-05-30
+> **Last Updated:** 2026-06-05
 
 ---
 
@@ -72,7 +72,7 @@ npx tsx prisma/seed-elections.mjs
 # 4. Copy the Direct Connection URL for DIRECT_URL
 
 # Update .env:
-DATABASE_URL="postgresql://postgres.[project]:[password]@aws-0-us-west-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+DATABASE_URL="postgresql://postgres.[project]:[password]@aws-1-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
 DIRECT_URL="postgresql://postgres.[project]:[password]@db.[project].supabase.co:5432/postgres"
 
 # Push schema and seed

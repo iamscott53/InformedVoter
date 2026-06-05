@@ -1,6 +1,6 @@
 # 03 — Data Model
 
-> **Last Updated:** 2026-05-30
+> **Last Updated:** 2026-06-05
 
 ---
 
