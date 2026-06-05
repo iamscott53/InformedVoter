@@ -58,7 +58,7 @@
 - **SCOTUS detail pages 500 error** — Replaced `isomorphic-dompurify` with `sanitize-html` (pure JS, no DOM). Justice and case detail pages now load correctly.
 - **Documentation sync** — Removed non-existent `state-legislature` route from AGENTS.md and 4 documentation files.
 - **Security audit deployed** — All 18 security hardening measures now active in production (timing-safe auth, prompt injection defense, rate limiter atomicity, SSRF hardening, XSS/tabnabbing protections, info disclosure minimization, input validation).
-- **UAT completed** — Full acceptance testing against production. 190+ cases, 177 passes. Report saved to `UAT_REPORT.md`.
+- **UAT completed** — Full acceptance testing against production. 179 cases, 175 passes, 0 real failures. Report saved to `UAT_REPORT.md`.
 - **3 UAT issues fixed:**
   - `/api/pac-recipients` now supports list-all mode (no `committeeIds` required)
   - `/local/city/[id]` and `/state/[stateAbbr]` now return proper 404 for invalid IDs

@@ -13,7 +13,7 @@
 
 **Hosting History:** Originally on **Vercel + Supabase + Upstash Redis** → migrated to **self-hosted VPS (Docker Compose + Nginx)** → now **returned to Vercel + Supabase**.
 
-**Current Status:** Deployed to Vercel + Supabase + Upstash Redis. Production alias: `https://informed-voter.vercel.app`. All Supabase tables created, RLS policies applied, middleware active, 13 cron jobs scheduled. UAT completed (190+ cases, 177 passes, 0 real failures). All 3 UAT issues fixed and verified in production. Security audit deployed (18 hardening measures).
+**Current Status:** Deployed to Vercel + Supabase + Upstash Redis. Production alias: `https://informed-voter.vercel.app`. All Supabase tables created, RLS policies applied, middleware active, 13 cron jobs scheduled. UAT completed (179 cases, 175 passes, 0 real failures). All 3 UAT issues fixed and verified in production. Security audit deployed (18 hardening measures).
 
 ---
 
@@ -357,7 +357,7 @@ npm run db:studio        # Prisma Studio GUI
 - ✅ All Vercel env vars configured
 - ✅ Database connected (pooler endpoint corrected `aws-0` → `aws-1`)
 - ✅ Security audit deployed (18 hardening measures)
-- ✅ UAT completed (190+ cases, 177 passes, 0 real failures)
+- ✅ UAT completed (179 cases, 175 passes, 0 real failures)
 
 **Remaining:**
 1. **Add optional API keys** when ready: `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, data API keys
