@@ -49,11 +49,11 @@ export async function checkRateLimit(
     const window = Math.floor(Date.now() / (windowSec * 1000));
     const key = `rl:${identifier}:${window}`;
 
+    // Atomically initialise the key with a TTL if it does not yet exist.
+    // `set nx` is atomic, so even under a race only one request creates the
+    // key — but all requests can safely increment afterwards.
+    await redis.set(key, "0", { nx: true, ex: windowSec });
     const count = await redis.incr(key);
-    if (count === 1) {
-      // Set TTL only on first request in window to avoid race
-      await redis.expire(key, windowSec);
-    }
 
     const remaining = Math.max(0, limit - count);
     const secondsIntoWindow = (Date.now() / 1000) % windowSec;
@@ -63,5 +63,20 @@ export async function checkRateLimit(
   } catch {
     // Redis error — fail open to avoid blocking legitimate users
     return { allowed: true, remaining: limit, retryAfter: 0 };
+  }
+}
+
+/**
+ * Acquire a distributed lock via Redis SET NX EX.
+ * Returns `true` if the lock was acquired, `false` if it is already held.
+ * Automatically expires after `ttlSec` to prevent deadlocks.
+ */
+export async function acquireLock(key: string, ttlSec: number): Promise<boolean> {
+  if (!redis) return true; // Fail open if Redis is unavailable
+  try {
+    const acquired = await redis.set(`lock:${key}`, "1", { nx: true, ex: ttlSec });
+    return acquired === "OK";
+  } catch {
+    return true; // Fail open on Redis error
   }
 }

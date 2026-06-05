@@ -731,9 +731,10 @@ const STATE_VOTER_DATA: StateVoterData[] = [
   },
 ];
 
+import { verifyCronSecret } from "@/lib/auth";
+
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!verifyCronSecret(request)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -805,7 +806,7 @@ export async function GET(request: Request) {
       synced: upserted,
       skipped,
       total: STATE_VOTER_DATA.length,
-      errors: errors.length > 0 ? errors : undefined,
+      errorCount: errors.length,
       message: "Voter info sync completed successfully",
     });
   } catch (error) {

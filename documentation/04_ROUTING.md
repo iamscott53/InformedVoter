@@ -116,7 +116,7 @@ All API routes live under `src/app/api/<route>/route.ts`.
 
 ### Cron Jobs (Data Sync)
 
-All cron routes require `Authorization: Bearer <CRON_SECRET>` (or `?manual=true` in dev).
+All cron routes require `Authorization: Bearer <CRON_SECRET>` OR `?secret=<CRON_SECRET>` query param (or `?manual=true` in dev with `ALLOW_MANUAL_CRON=true`).
 
 | Route | External APIs | DB Writes | Schedule | Notes |
 |-------|--------------|-----------|----------|-------|
@@ -142,8 +142,10 @@ All cron routes require `Authorization: Bearer <CRON_SECRET>` (or `?manual=true`
 **Matcher:** `/api/:path*` (all API routes)
 
 Behavior:
-1. Extracts client IP from `cf-connecting-ip` → `x-real-ip` → `x-forwarded-for`
-2. Protected routes (`/api/ai/*`, `/api/cron/*`) require valid Bearer token
+1. Extracts client IP from `cf-connecting-ip` → `x-vercel-forwarded-for` → `x-real-ip` → rightmost `x-forwarded-for`
+2. Protected routes (`/api/ai/*`, `/api/cron/*`) require valid auth token
+   - `/api/ai/*`: Bearer header only
+   - `/api/cron/*`: Bearer header OR `?secret=` query param (validated in both middleware and route handler)
    - Dev bypass: `ALLOW_MANUAL_CRON=true` + `?manual=true` (cron only, local dev)
    - Returns 500 if `CRON_SECRET` is not configured
    - Returns 401 if token mismatch

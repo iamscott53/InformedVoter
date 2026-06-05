@@ -1,3 +1,5 @@
+import { verifyCronSecret } from "@/lib/auth";
+
 // ─────────────────────────────────────────────
 // GET /api/cron/sync-pac-contributions
 // Syncs PAC-to-candidate contributions from FEC Schedule A.
@@ -257,11 +259,8 @@ export async function GET(request: Request) {
         { status: 403 }
       );
     }
-  } else {
-    const authHeader = request.headers.get("authorization");
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  } else if (!verifyCronSecret(request)) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   if (!process.env.FEC_API_KEY) {
@@ -272,8 +271,9 @@ export async function GET(request: Request) {
   }
 
   const limitParam = searchParams.get("limit");
-  const candidatesPerRun = limitParam
-    ? Math.min(Math.max(1, parseInt(limitParam, 10)), 100)
+  const limitParsed = limitParam ? parseInt(limitParam, 10) : NaN;
+  const candidatesPerRun = !isNaN(limitParsed)
+    ? Math.min(Math.max(1, limitParsed), 100)
     : DEFAULT_CANDIDATES_PER_RUN;
 
   const startTime = Date.now();

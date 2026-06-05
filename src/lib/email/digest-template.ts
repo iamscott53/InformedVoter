@@ -42,7 +42,8 @@ function escapeHtml(text: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function section(title: string, body: string): string {
@@ -101,7 +102,7 @@ export function buildDigestEmail(params: DigestEmailParams): {
   if (deadlines.length > 0) {
     sections.push(
       section(
-        `Upcoming Deadlines — ${stateName}`,
+        `Upcoming Deadlines — ${escapeHtml(stateName)}`,
         deadlines.map(deadlineRow).join("")
       )
     );
@@ -110,7 +111,7 @@ export function buildDigestEmail(params: DigestEmailParams): {
   if (bills.length > 0) {
     sections.push(
       section(
-        `Bills — ${stateName}`,
+        `Bills — ${escapeHtml(stateName)}`,
         bills.slice(0, 10).map(billRow).join("") +
           (bills.length > 10
             ? `<p style="font-size:13px;color:#6b7280;margin-top:8px;">+ ${bills.length - 10} more — <a href="${stateUrl}/bills" style="color:#1B2A4A;">view all</a></p>`
@@ -139,7 +140,7 @@ export function buildDigestEmail(params: DigestEmailParams): {
   <div style="max-width:560px;margin:40px auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
     <div style="background:#1B2A4A;padding:20px 32px;">
       <h1 style="margin:0;color:#ffffff;font-size:18px;font-weight:700;">InformedVoter</h1>
-      <p style="margin:4px 0 0;color:rgba(255,255,255,0.6);font-size:13px;">Your ${stateName} civic digest</p>
+      <p style="margin:4px 0 0;color:rgba(255,255,255,0.6);font-size:13px;">Your ${escapeHtml(stateName)} civic digest</p>
     </div>
     <div style="padding:24px 32px;">
       ${sections.join("")}
@@ -151,7 +152,7 @@ export function buildDigestEmail(params: DigestEmailParams): {
     </div>
     <div style="padding:16px 32px;background:#f9fafb;border-top:1px solid #e5e7eb;">
       <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;line-height:1.5;">
-        You're receiving this because you subscribed to ${stateName} updates on InformedVoter.<br>
+        You're receiving this because you subscribed to ${escapeHtml(stateName)} updates on InformedVoter.<br>
         <a href="${unsubUrl}" style="color:#6b7280;text-decoration:underline;">Unsubscribe</a>
       </p>
     </div>

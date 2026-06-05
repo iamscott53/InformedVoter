@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────
 
 import { prisma } from "@/lib/db";
+import { verifyCronSecret } from "@/lib/auth";
 import { OfficeType } from "@prisma/client";
 
 const CONGRESS_API_BASE = "https://api.congress.gov/v3";
@@ -194,7 +195,9 @@ async function fetchAllCurrentMembers(): Promise<CongressMemberListItem[]> {
 
   while (nextUrl) {
     pageNum++;
-    console.log(`[sync-members] Fetching page ${pageNum}: ${nextUrl}`);
+    const logUrl = new URL(nextUrl);
+    logUrl.searchParams.delete("api_key");
+    console.log(`[sync-members] Fetching page ${pageNum}: ${logUrl.toString()}`);
 
     const data: CongressMemberListResponse = await congressFetch<CongressMemberListResponse>(nextUrl);
 
@@ -409,11 +412,8 @@ export async function GET(request: Request) {
       );
     }
     console.log("[sync-members] Manual trigger in development mode — skipping auth");
-  } else {
-    const authHeader = request.headers.get("authorization");
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  } else if (!verifyCronSecret(request)) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const apiKey = process.env.CONGRESS_GOV_API_KEY;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { verifyCronSecret } from "@/lib/auth";
 import {
   fetchLegistarEvents,
   fetchLegistarEventItems,
@@ -16,13 +17,17 @@ import {
  */
 export async function GET(request: NextRequest) {
   // ── Auth ──
-  const authHeader = request.headers.get("authorization");
-  const token = authHeader?.replace("Bearer ", "").trim();
   const manual = request.nextUrl.searchParams.get("manual") === "true";
 
-  if (process.env.ALLOW_MANUAL_CRON === "true" && manual) {
-    // allow through
-  } else if (token !== process.env.CRON_SECRET) {
+  if (manual) {
+    if (process.env.NODE_ENV !== "development") {
+      return NextResponse.json(
+        { error: "Manual trigger is only allowed in development" },
+        { status: 403 }
+      );
+    }
+    console.log("[sync-local-meetings] Manual trigger in development mode — skipping auth");
+  } else if (!verifyCronSecret(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -141,7 +146,7 @@ export async function GET(request: NextRequest) {
       success: true,
       recordsSynced,
       recordsFailed,
-      errors: errors.length > 0 ? errors : undefined,
+      errorCount: errors.length,
       durationMs: Date.now() - startTime,
     });
   } catch (error) {
@@ -161,7 +166,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(
-      { error: "Sync failed", details: msg },
+      { error: "Sync failed" },
       { status: 500 }
     );
   }

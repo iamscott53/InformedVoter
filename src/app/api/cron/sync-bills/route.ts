@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────
 
 import { prisma } from "@/lib/db";
+import { verifyCronSecret } from "@/lib/auth";
 import { Chamber, BillStatus } from "@prisma/client";
 
 const CONGRESS_API_BASE = "https://api.congress.gov/v3";
@@ -219,7 +220,9 @@ async function fetchRecentBills(maxBills: number): Promise<CongressBillListItem[
 
   while (nextUrl && all.length < maxBills) {
     pageNum++;
-    console.log(`[sync-bills] Fetching bill list page ${pageNum}: ${nextUrl}`);
+    const logUrl = new URL(nextUrl);
+    logUrl.searchParams.delete("api_key");
+    console.log(`[sync-bills] Fetching bill list page ${pageNum}: ${logUrl.toString()}`);
 
     const data: CongressBillListResponse = await congressFetch<CongressBillListResponse>(nextUrl);
     const bills = data.bills ?? [];
@@ -443,11 +446,8 @@ export async function GET(request: Request) {
       );
     }
     console.log("[sync-bills] Manual trigger in development mode — skipping auth");
-  } else {
-    const authHeader = request.headers.get("authorization");
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  } else if (!verifyCronSecret(request)) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const apiKey = process.env.CONGRESS_GOV_API_KEY;

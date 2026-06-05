@@ -1,0 +1,141 @@
+Type	Route	Message	Detail
+PASS|/|Page loads, content verified|
+PASS|/about|Page loads, content verified|
+PASS|/contact|Page loads, content verified|
+PASS|/privacy|Page loads, content verified|
+PASS|/elections|Page loads, content verified|
+PASS|/judicial|Page loads, content verified|
+PASS|/local|Page loads, content verified|
+PASS|/local/rules|Page loads, content verified|
+PASS|/local/templates|Page loads, content verified|
+PASS|/agencies|Page loads, content verified|
+PASS|/polling-places|Page loads, content verified|
+PASS|/compare|Page loads, content verified|
+PASS|/pac-recipients|Page loads, content verified|
+PASS|/robots.txt|Page loads, content verified|
+PASS|/sitemap.xml|Page loads, content verified|
+PASS|/state/VA|Loads successfully|
+PASS|/state/VA/senators|Loads successfully|
+PASS|/state/VA/representatives|Loads successfully|
+PASS|/state/VA/governor|Loads successfully|
+PASS|/state/VA/bills|Loads successfully|
+PASS|/state/VA/elections|Loads successfully|
+PASS|/state/VA/voter-info|Loads successfully|
+FAIL|/state/VA/state-legislature|404 Not Found|
+PASS|/state/CA|Loads successfully|
+PASS|/state/CA/senators|Loads successfully|
+PASS|/state/CA/representatives|Loads successfully|
+PASS|/state/CA/governor|Loads successfully|
+PASS|/state/CA/bills|Loads successfully|
+PASS|/state/CA/elections|Loads successfully|
+PASS|/state/CA/voter-info|Loads successfully|
+FAIL|/state/CA/state-legislature|404 Not Found|
+PASS|/state/TX|Loads successfully|
+PASS|/state/TX/senators|Loads successfully|
+PASS|/state/TX/representatives|Loads successfully|
+PASS|/state/TX/governor|Loads successfully|
+PASS|/state/TX/bills|Loads successfully|
+PASS|/state/TX/elections|Loads successfully|
+PASS|/state/TX/voter-info|Loads successfully|
+FAIL|/state/TX/state-legislature|404 Not Found|
+PASS|/state/FL|Loads successfully|
+PASS|/state/FL/senators|Loads successfully|
+PASS|/state/FL/representatives|Loads successfully|
+PASS|/state/FL/governor|Loads successfully|
+PASS|/state/FL/bills|Loads successfully|
+PASS|/state/FL/elections|Loads successfully|
+PASS|/state/FL/voter-info|Loads successfully|
+FAIL|/state/FL/state-legislature|404 Not Found|
+PASS|/state/NY|Loads successfully|
+PASS|/state/NY/senators|Loads successfully|
+PASS|/state/NY/representatives|Loads successfully|
+PASS|/state/NY/governor|Loads successfully|
+PASS|/state/NY/bills|Loads successfully|
+PASS|/state/NY/elections|Loads successfully|
+PASS|/state/NY/voter-info|Loads successfully|
+FAIL|/state/NY/state-legislature|404 Not Found|
+PASS|/state/OH|Loads successfully|
+PASS|/state/OH/senators|Loads successfully|
+PASS|/state/OH/representatives|Loads successfully|
+PASS|/state/OH/governor|Loads successfully|
+PASS|/state/OH/bills|Loads successfully|
+PASS|/state/OH/elections|Loads successfully|
+PASS|/state/OH/voter-info|Loads successfully|
+FAIL|/state/OH/state-legislature|404 Not Found|
+PASS|/state/MI|Loads successfully|
+PASS|/state/MI/senators|Loads successfully|
+PASS|/state/MI/representatives|Loads successfully|
+PASS|/state/MI/governor|Loads successfully|
+PASS|/state/MI/bills|Loads successfully|
+PASS|/state/MI/elections|Loads successfully|
+PASS|/state/MI/voter-info|Loads successfully|
+FAIL|/state/MI/state-legislature|404 Not Found|
+PASS|/state/PA|Loads successfully|
+PASS|/state/PA/senators|Loads successfully|
+PASS|/state/PA/representatives|Loads successfully|
+PASS|/state/PA/governor|Loads successfully|
+PASS|/state/PA/bills|Loads successfully|
+PASS|/state/PA/elections|Loads successfully|
+PASS|/state/PA/voter-info|Loads successfully|
+FAIL|/state/PA/state-legislature|404 Not Found|
+PASS|/api/scotus/justices?limit=1|API responds correctly|
+PASS|/api/scotus/cases?limit=1|API responds correctly|
+PASS|/api/candidates?limit=1|API responds correctly|
+PASS|/api/bills?limit=1|API responds correctly|
+PASS|/api/agencies|API responds correctly|
+PASS|/api/search?q=tax&limit=1|API responds correctly|
+PASS|/api/polling-places?address=1600+Pennsylvania+Avenue+NW+Washington+DC|API responds correctly|
+PASS|/api/district-lookup?address=1600+Pennsylvania+Avenue+NW+Washington+DC|API responds correctly|
+FAIL|/api/pac-recipients?limit=1|Status 400|{"error":"committeeIds parameter is required (comma-separated FEC committee IDs)"}
+PASS|/api/health|API responds correctly|
+FAIL|/judicial/justices/ketanji_brown_jackson|Status 500|
+PASS|/candidate/1175|Status 200|
+PASS|/state/VA/bills/119-hr-9027|Status 200|
+PASS|/api/local/municipality?city=Chicago&state=IL|Status 200|
+PASS|/api/local/meetings?municipalityId=1|Status 200|
+WARN|/api/local/meeting/1|Status 404|
+FAIL|/api/local/template?agendaItem=Budget&tone=professional|Status 405|
+WARN|/local/city/1|Status 200|
+WARN|/local/meeting/1|Status 200|
+PASS|/api/subscribe (invalid email)|Correctly rejected with 400|
+PASS|/api/subscribe (invalid state)|Correctly rejected with 400|
+PASS|/api/subscribe (valid subscription)|Correctly rejected with 400|
+PASS|/api/unsubscribe?token=...|GET status 200|
+PASS|/api/local/meetings/submit (empty)|Status 400|
+PASS|/api/cron/sync-members|Correctly requires auth (401/403)|
+PASS|/api/cron/sync-bills|Correctly requires auth (401/403)|
+PASS|/api/cron/analyze-bills|Correctly requires auth (401/403)|
+PASS|/api/ai/analyze-bill|Correctly requires auth (401/403)|
+PASS|/api/ai/analyze-candidate|Correctly requires auth (401/403)|
+PASS|/api/cron/sync-members (wrong secret)|Status 401|
+PASS|Security Header: content-security-policy|default-src 'self'; script-src 'self' 'unsafe-inline' 'unsaf|
+PASS|Security Header: x-frame-options|DENY|
+PASS|Security Header: x-content-type-options|nosniff|
+PASS|Security Header: referrer-policy|strict-origin-when-cross-origin|
+PASS|Security Header: strict-transport-security|max-age=31536000; includeSubDomains; preload|
+WARN|Security|Server header leaks info|Vercel
+PASS|/_next/static/chunks/081g0drr65jrb.css|Link OK|
+PASS|/_next/static/chunks/05tsy9pxtuyv0.js|Link OK|
+PASS|/icon.svg|Link OK|
+PASS|/|Link OK|
+PASS|/pac-recipients|Link OK|
+PASS|/local|Link OK|
+PASS|/about|Link OK|
+PASS|/privacy|Link OK|
+PASS|/contact|Link OK|
+PASS|/polling-places|Link OK|
+PASS|/agencies|Link OK|
+PASS|/agencies/dod|Link OK|
+PASS|/agencies/hhs|Link OK|
+PASS|/agencies/va|Link OK|
+PASS|/agencies/ssa|Link OK|
+PASS|/agencies/ed|Link OK|
+PASS|/agencies/dhs|Link OK|
+PASS|/agencies/doj|Link OK|
+PASS|/agencies/dot|Link OK|
+PASS|/|TTFB 50ms|
+PASS|/about|TTFB 50ms|
+PASS|/judicial|TTFB 52ms|
+PASS|/state/VA|TTFB 151ms|
+PASS|/api/health|TTFB 111ms|
+PASS|/api/scotus/justices?limit=1|TTFB 128ms|

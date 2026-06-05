@@ -5,6 +5,9 @@
 
 const LEGISTAR_BASE = "https://webapi.legistar.com/v1";
 
+// Alphanumeric, hyphen, and underscore only — prevents path traversal and SSRF.
+const CLIENT_ID_REGEX = /^[a-zA-Z0-9_-]+$/;
+
 interface LegistarEvent {
   EventId: number;
   EventGuid: string;
@@ -58,6 +61,20 @@ interface LegistarMatter {
   MatterEXDate2: string | null;
 }
 
+function validateClientId(client: string): void {
+  if (!CLIENT_ID_REGEX.test(client)) {
+    throw new Error("Invalid Legistar client identifier");
+  }
+}
+
+/**
+ * Escape a string for safe use inside an OData string literal.
+ * OData escapes single quotes by doubling them.
+ */
+function escapeOdataString(value: string): string {
+  return value.replace(/'/g, "''");
+}
+
 /**
  * Fetch upcoming events (meetings) for a Legistar client.
  */
@@ -65,13 +82,14 @@ export async function fetchLegistarEvents(
   client: string,
   options: { fromDate?: string; toDate?: string; bodyId?: number } = {}
 ): Promise<LegistarEvent[]> {
+  validateClientId(client);
   const { fromDate, toDate, bodyId } = options;
 
   const params = new URLSearchParams();
   // OData-style filtering
   const filters: string[] = [];
-  if (fromDate) filters.push(`EventDate ge datetime'${fromDate}'`);
-  if (toDate) filters.push(`EventDate le datetime'${toDate}'`);
+  if (fromDate) filters.push(`EventDate ge datetime'${escapeOdataString(fromDate)}'`);
+  if (toDate) filters.push(`EventDate le datetime'${escapeOdataString(toDate)}'`);
   if (bodyId) filters.push(`EventBodyId eq ${bodyId}`);
 
   if (filters.length > 0) {
@@ -101,6 +119,7 @@ export async function fetchLegistarEventItems(
   client: string,
   eventId: number
 ): Promise<LegistarMatter[]> {
+  validateClientId(client);
   const url = `${LEGISTAR_BASE}/${client}/Events/${eventId}/EventItems`;
   const res = await fetch(url, {
     headers: { Accept: "application/json" },

@@ -6,19 +6,31 @@ import { BASE_URL } from "@/lib/resend";
 // Returns an HTML page (not JSON) since users click this from email
 // ─────────────────────────────────────────────
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function htmlPage(title: string, message: string, cta?: string): Response {
+  const safeTitle = escapeHtml(title);
+  const safeMessage = escapeHtml(message);
+  const safeCta = cta ? escapeHtml(cta) : `<a href="${BASE_URL}" style="display:inline-block;background:#1B2A4A;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:15px;">Go to InformedVoter</a>`;
   return new Response(
     `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>${title} — InformedVoter</title>
+  <title>${safeTitle} — InformedVoter</title>
 </head>
 <body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f3f4f6;display:flex;justify-content:center;align-items:center;min-height:100vh;">
   <div style="max-width:440px;text-align:center;padding:40px 24px;">
-    <h1 style="color:#1B2A4A;font-size:24px;margin:0 0 12px;">${title}</h1>
-    <p style="color:#4b5563;font-size:16px;line-height:1.6;margin:0 0 24px;">${message}</p>
-    ${cta ?? `<a href="${BASE_URL}" style="display:inline-block;background:#1B2A4A;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:15px;">Go to InformedVoter</a>`}
+    <h1 style="color:#1B2A4A;font-size:24px;margin:0 0 12px;">${safeTitle}</h1>
+    <p style="color:#4b5563;font-size:16px;line-height:1.6;margin:0 0 24px;">${safeMessage}</p>
+    ${safeCta}
   </div>
 </body>
 </html>`,

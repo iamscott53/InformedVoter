@@ -415,9 +415,9 @@ vercel --prod
 - Check that `rate-limit.ts` was updated to use the new Redis client
 
 ### "Cron jobs returning 401"
-- **Fixed in middleware:** Cron routes (`/api/cron/*`) no longer require auth. They are protected by rate limiting only (300 req/60s).
-- Vercel Cron Jobs are server-to-server GET requests; the URL paths are not sensitive operations (idempotent data syncs).
-- Manual triggers can still use `?secret=CRON_SECRET` if desired, but it is optional.
+- Cron routes (`/api/cron/*`) require authentication. `verifyCronSecret(request)` checks for `Authorization: Bearer <CRON_SECRET>` first, then falls back to `?secret=<CRON_SECRET>` query param.
+- For Vercel Cron Jobs, append `?secret=<CRON_SECRET>` to the cron path in `vercel.json` (or configure via the Vercel dashboard).
+- Manual triggers in development can use `?manual=true` with `ALLOW_MANUAL_CRON=true` to bypass auth.
 
 ### "Images not loading"
 - Verify `images.remotePatterns` in `next.config.mjs` includes all external image domains

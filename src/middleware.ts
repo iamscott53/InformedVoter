@@ -17,7 +17,9 @@ function getClientIP(request: NextRequest): string {
     request.headers.get("cf-connecting-ip") ??
     request.headers.get("x-vercel-forwarded-for") ??
     request.headers.get("x-real-ip") ??
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    // Use the RIGHTMOST entry in x-forwarded-for — it is the one appended by
+    // the infrastructure closest to the server and hardest to spoof.
+    request.headers.get("x-forwarded-for")?.split(",").pop()?.trim() ??
     "unknown"
   );
 }
@@ -30,16 +32,18 @@ function tooManyRequests(retryAfter: number): NextResponse {
 }
 
 /**
- * Constant-time string comparison using XOR.
- * Prevents timing attacks that leak secrets character by character.
+ * Constant-time string comparison.
+ * Prevents timing attacks that leak secret length or content.
  * Works in Edge Runtime (no Node.js crypto required).
  */
 function timingSafeCompare(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
+  const maxLen = Math.max(a.length, b.length);
   let mismatch = 0;
-  for (let i = 0; i < a.length; i++) {
-    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  for (let i = 0; i < maxLen; i++) {
+    mismatch |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
   }
+  // Mask in the length difference so timing is identical for all lengths.
+  mismatch |= a.length ^ b.length;
   return mismatch === 0;
 }
 
@@ -51,6 +55,19 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname, searchParams } = request.nextUrl;
   const ip = getClientIP(request);
 
+  // ── CORS preflight ──────────────────────────────────────────────────
+  if (request.method === "OPTIONS" && pathname.startsWith("/api/")) {
+    return new NextResponse(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Max-Age": "86400",
+      },
+    });
+  }
+
   const isCron    = pathname.startsWith("/api/cron/");
   const isAi      = pathname.startsWith("/api/ai/");
   const isProtected = isAi || isCron;
@@ -59,12 +76,16 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     // ── Dev manual trigger (bypasses auth for local testing) ────────────
     // Requires ALLOW_MANUAL_CRON=true explicitly set in .env.
     // NEVER set this in production.
-    if (
-      process.env.ALLOW_MANUAL_CRON === "true" &&
-      isCron &&
-      searchParams.get("manual") === "true"
-    ) {
-      return NextResponse.next();
+    if (isCron && searchParams.get("manual") === "true") {
+      if (process.env.NODE_ENV === "production") {
+        return NextResponse.json(
+          { error: "Manual trigger is disabled in production" },
+          { status: 403 }
+        );
+      }
+      if (process.env.ALLOW_MANUAL_CRON === "true") {
+        return NextResponse.next();
+      }
     }
 
     // ── AI routes: require Bearer token (always) ────────────────────────
@@ -87,17 +108,20 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    // ── Cron routes: no auth required ───────────────────────────────────
-    // Vercel Cron Jobs cannot send custom headers or query params.
-    // Cron routes are idempotent GETs; rate limiting is the protection.
-    // Manual triggers in production can use ?secret=CRON_SECRET if desired.
+    // ── Cron routes: require auth ───────────────────────────────────────
+    // Vercel Cron Jobs are identified by User-Agent: Vercelbot and are
+    // allowed through. All other requests must provide a valid Bearer token
+    // or ?secret= query param.
     if (isCron) {
-      const cronSecret = process.env.CRON_SECRET?.trim();
-      const queryToken = searchParams.get("secret");
-      if (cronSecret && queryToken && !timingSafeCompare(queryToken, cronSecret)) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      const userAgent = request.headers.get("User-Agent") ?? "";
+      const isVercelCron = userAgent.includes("Vercelbot");
+      if (!isVercelCron) {
+        const cronSecret = process.env.CRON_SECRET?.trim();
+        const queryToken = searchParams.get("secret");
+        if (!queryToken || !cronSecret || !timingSafeCompare(queryToken, cronSecret)) {
+          return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
       }
-      // If no secret provided, allow through (Vercel Cron Jobs)
     }
 
     // ── Rate-limit protected routes ─────────────────────────────────────
@@ -125,7 +149,16 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     if (!allowed) return tooManyRequests(retryAfter);
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+
+  // ── CORS headers for API routes ─────────────────────────────────────
+  if (pathname.startsWith("/api/")) {
+    response.headers.set("Access-Control-Allow-Origin", "*");
+    response.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  }
+
+  return response;
 }
 
 export const config = {

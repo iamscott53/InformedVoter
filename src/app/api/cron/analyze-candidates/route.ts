@@ -6,6 +6,8 @@
 
 import { prisma } from "@/lib/db";
 import { analyzeCandidatePolicy } from "@/lib/ai/claude-client";
+import { verifyCronSecret } from "@/lib/auth";
+import { acquireLock } from "@/lib/rate-limit";
 import { PolicyCategory } from "@/types";
 
 const BATCH_SIZE = 5;
@@ -18,9 +20,16 @@ function sleep(ms: number): Promise<void> {
 }
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!verifyCronSecret(request)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const hasLock = await acquireLock("analyze-candidates", 600);
+  if (!hasLock) {
+    return Response.json(
+      { error: "Another instance is already running" },
+      { status: 423 }
+    );
   }
 
   try {
@@ -149,7 +158,7 @@ export async function GET(request: Request) {
     return Response.json({
       candidatesProcessed: candidates.length,
       policiesAnalyzed,
-      errors: errors.length > 0 ? errors : undefined,
+      errorCount: errors.length,
       message: `Processed ${candidates.length} candidate(s), analyzed ${policiesAnalyzed} policy category(ies)`,
     });
   } catch (error) {

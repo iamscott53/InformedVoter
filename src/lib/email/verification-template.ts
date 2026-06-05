@@ -1,5 +1,14 @@
 import { BASE_URL } from "@/lib/resend";
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 const STATE_NAMES: Record<string, string> = {
   AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California",
   CO: "Colorado", CT: "Connecticut", DE: "Delaware", FL: "Florida", GA: "Georgia",
@@ -34,7 +43,7 @@ export function buildVerificationEmail(
     <div style="padding:32px;">
       <h2 style="margin:0 0 12px;color:#1B2A4A;font-size:18px;">Confirm your subscription</h2>
       <p style="color:#4b5563;font-size:15px;line-height:1.6;margin:0 0 8px;">
-        You asked for updates about <strong>${stateName}</strong> — bills, election deadlines,
+        You asked for updates about <strong>${escapeHtml(stateName)}</strong> — bills, election deadlines,
         and Supreme Court decisions, explained in plain English.
       </p>
       <p style="color:#4b5563;font-size:15px;line-height:1.6;margin:0 0 24px;">

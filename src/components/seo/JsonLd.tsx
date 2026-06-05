@@ -6,11 +6,19 @@ interface JsonLdProps {
   data: Record<string, unknown>;
 }
 
+/**
+ * Serialize data to JSON-LD with HTML-safe encoding.
+ * Prevents </script> tag breakout attacks by escaping `<` to \u003c.
+ */
+function safeJsonLd(data: Record<string, unknown>): string {
+  return JSON.stringify(data).replace(/</g, "\\u003c");
+}
+
 export function JsonLd({ data }: JsonLdProps) {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: safeJsonLd(data) }}
     />
   );
 }

@@ -1,3 +1,4 @@
+<!-- From: c:\Shared\git\InformedVoter\AGENTS.md -->
 # AGENTS.md — InformedVoter
 
 > This file is the single source of truth for AI coding agents working on this project.  
@@ -43,8 +44,8 @@ prisma/
 
 src/
   app/                   # Next.js App Router (pages + API routes)
-    api/                 # REST endpoints
-      cron/              # Scheduled sync / analysis jobs (13 jobs)
+    api/                 # REST endpoints (34 route files)
+      cron/              # Scheduled sync / analysis jobs (13 jobs, ~5000 total lines)
       ai/                # On-demand AI analysis (bills, candidates)
       local/             # Local government: meetings, municipalities, templates, submissions
       scotus/            # Supreme Court data API (cases, justices)
@@ -92,18 +93,18 @@ src/
     ui/                  # Reusable badges, cards, selectors, disclaimers
     layout/              # Header, Footer, Navigation
     features/            # Page-specific sections (map, filters, tables, forms)
-      local/             # Local-government-specific components
+      local/             # Local-government-specific components (currently empty)
     seo/                 # JSON-LD structured data
 
   lib/
     db.ts                # Singleton PrismaClient (dev-safe global reuse)
     rate-limit.ts        # Fixed-window rate limiter backed by Redis
     ai/claude-client.ts  # Claude prompts for bills, riders, candidates, court cases, speaking templates
-    auth.ts              # Auth helpers
+    auth.ts              # Timing-safe cron secret verification helper
     resend.ts            # Email client setup
     email/               # HTML email templates (verification, digest)
-    sanitize.ts          # DOMPurify wrapper
-    utils.ts             # General helpers
+    sanitize.ts          # DOMPurify wrapper for external HTML
+    utils.ts             # General helpers (cn, formatDate, formatCurrency, slugify, party/status colors)
     agencies.ts          # Static agency catalog
     fec.ts               # FEC / OpenFEC helpers
     pac-catalog.ts       # PAC metadata
@@ -111,13 +112,19 @@ src/
       legistar-client.ts # Granicus/Legistar API wrapper
 
   hooks/
-    useUserState.ts      # Persist selected state in localStorage
+    useUserState.ts      # Persist selected state in a browser cookie (`selected-state`, 1-year expiry)
 
   types/
     index.ts             # Shared TypeScript types & enums (mirror Prisma enums)
 
   data/
     us-states.ts         # SVG path data for the interactive US map
+
+documentation/           # Comprehensive project docs (14 markdown files)
+  01_PROJECT_OVERVIEW.md
+  02_ARCHITECTURE.md
+  ...
+  13_VERCEL_SUPABASE_MIGRATION.md
 
 .creds/
   creds.md               # Infrastructure credentials (gitignored, local-only)
@@ -205,17 +212,18 @@ Runs on **all** `/api/*` routes:
 | Route Prefix | Rate Limit | Auth |
 |--------------|-----------|------|
 | `/api/ai/*` | 300 req / 60s | Bearer token via `CRON_SECRET` (timing-safe compare) |
-| `/api/cron/*` | 300 req / 60s | None (Vercel Cron Jobs compatible; rate-limited only) |
+| `/api/cron/*` | 300 req / 60s | `verifyCronSecret(request)` — Bearer header, `?secret=` query param, OR Vercel Cron Jobs (User-Agent: Vercelbot) |
 | `/api/subscribe` (POST) | 5 req / 60s | None |
 | All other `/api/*` | 60 req / 60s | None |
 
 - Rate limiting uses Upstash Redis fixed-window counters. If Redis is unavailable, it **fails open** (allows all requests).
-- Client IP detection prefers `cf-connecting-ip`, then `x-vercel-forwarded-for`, then `x-real-ip`, then `x-forwarded-for`.
+- Client IP detection prefers `cf-connecting-ip`, then `x-vercel-forwarded-for`, then `x-real-ip`, then the **rightmost** entry in `x-forwarded-for` (hardest to spoof).
 
 ### API Route Conventions
 - Route handlers live in `src/app/api/<route>/route.ts`.
 - `GET`, `POST`, etc. are exported as named async functions.
 - Cron jobs are grouped under `src/app/api/cron/<job-name>/route.ts`.
+- On-demand AI endpoints are under `src/app/api/ai/<action>/route.ts`.
 
 ### Health Check
 `GET /api/health` returns `{ status: "healthy" | "degraded", checks: { app, database }, timestamp }`.
@@ -225,11 +233,11 @@ Runs on **all** `/api/*` routes:
 ## Security Model
 
 1. **Rate Limiting** — Redis-backed, per-IP, tiered limits (see Middleware above).
-2. **Cron Authentication** — Bearer token compared with constant-time `timingSafeCompare` to prevent timing attacks.
+2. **Cron Authentication** — Bearer token compared with constant-time `timingSafeCompare` to prevent timing attacks. Node.js `crypto.timingSafeEqual` is used in `src/lib/auth.ts`.
 3. **Security Headers** — Set in `next.config.mjs`:
    - `Content-Security-Policy` (strict, with `unsafe-inline` for scripts/styles)
-   - `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `X-XSS-Protection`, `Referrer-Policy`, `Strict-Transport-Security`, `Permissions-Policy`
-4. **Input Sanitization** — DOMPurify (via `isomorphic-dompurify`) for rendering external HTML.
+   - `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Strict-Transport-Security` (with `preload`), `Permissions-Policy`
+4. **Input Sanitization** — DOMPurify (via `isomorphic-dompurify`) for rendering external HTML. Allowed tags are restricted to safe markup in `src/lib/sanitize.ts`.
 5. **Supabase RLS** — Row Level Security policies on all tables. Public read access for civic data; default-deny for PII tables.
 
 ---
@@ -285,6 +293,9 @@ Sync results are logged to the `DataSyncLog` table.
 The project has no Jest, Vitest, Playwright, or Cypress configuration.  
 If you add tests, place the config at the project root and update this section.
 
+### Manual Testing
+See `documentation/10_TESTING.md` for a comprehensive manual testing checklist covering core pages, API endpoints, cron jobs, and interactive features.
+
 ---
 
 ## Code Style Guidelines
@@ -296,6 +307,7 @@ If you add tests, place the config at the project root and update this section.
 - **Prisma:** Add `@@index` on foreign keys and frequently filtered columns. Use `Decimal @db.Decimal(18, 2)` for currency.
 - **CSS:** Custom properties are defined in `:root` inside `globals.css`. Tailwind utilities are preferred for layout; custom properties are used for the color palette and typography scale.
 - **Accessibility:** Skip-to-content link is in `layout.tsx`. Use `focus-visible` outlines. Headings use serif font for authority/trust.
+- **Server vs Client Components:** Default to Server Components. Use `"use client"` only for interactivity (forms, state, browser APIs, TanStack Query).
 
 ---
 
@@ -322,7 +334,9 @@ VPS/Docker files have been moved to `.deprecated/` for reference. The project no
 - **Do not assume a test runner exists.** Verify before writing tests.
 - **Prisma client reuse:** Use the exported `prisma` from `@/lib/db`. Do not instantiate `new PrismaClient()` in random files — it leaks connections in dev.
 - **Redis fallback:** Rate limiting silently allows all traffic when Redis is down. This is intentional for local dev, but confirm Redis is wired up in production.
-- **Cron auth:** `/api/cron/*` routes do NOT require auth in production (Vercel Cron Jobs compatible). They are protected by rate limiting only. `/api/ai/*` still requires `Authorization: Bearer <CRON_SECRET>`. Local dev can use `ALLOW_MANUAL_CRON=true` + `?manual=true`.
+- **Cron auth:** All `/api/cron/*` routes enforce `verifyCronSecret(request)`, which checks `Authorization: Bearer <CRON_SECRET>` first, then falls back to `?secret=<CRON_SECRET>`, then allows Vercel Cron Jobs via `User-Agent: Vercelbot`. The middleware also validates `?secret=` when present and blocks manual triggers in production. Local dev can use `ALLOW_MANUAL_CRON=true` + `?manual=true`.
+- **Distributed locks:** AI analysis and digest cron jobs use Redis `SET NX EX` locks to prevent duplicate work and duplicate emails.
 - **External API keys:** Many data-sync features fail gracefully when API keys are missing. Check for key presence before making expensive calls.
 - **Local meeting data is fragmented.** There is no unified national API for city council meetings. Coverage requires building adapters for multiple platforms (Legistar, CivicPlus, etc.).
 - **Supabase direct connection:** `db.XXX.supabase.co` is IPv6-only. If `prisma db push` fails with P1001 from your local machine, use the Supabase SQL Editor instead.
+- **Cookie-based state selection:** `useUserState` stores the user's selected state in a cookie (`selected-state`), not localStorage. It is read client-side only after hydration to avoid SSR/hydration mismatches.

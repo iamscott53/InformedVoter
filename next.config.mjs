@@ -5,8 +5,9 @@ const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
   // Prevent MIME-type sniffing
   { key: "X-Content-Type-Options", value: "nosniff" },
-  // Enable XSS filter in older browsers
-  { key: "X-XSS-Protection", value: "1; mode=block" },
+  // X-XSS-Protection is deprecated and can introduce vulnerabilities in older browsers.
+  // Modern CSP provides superior protection.
+  // { key: "X-XSS-Protection", value: "1; mode=block" },
   // Restrict Referer header to origin only on cross-origin requests
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   // Lock down browser features not used by this app
@@ -17,13 +18,16 @@ const securityHeaders = [
   // Force HTTPS for 1 year (only active once served over HTTPS)
   {
     key: "Strict-Transport-Security",
-    value: "max-age=31536000; includeSubDomains",
+    value: "max-age=31536000; includeSubDomains; preload",
   },
   // Content Security Policy — primary XSS defense
   {
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
+      // NOTE: 'unsafe-inline' and 'unsafe-eval' are required for Next.js 16 runtime
+      // (styled-jsx, fast refresh, etc.). Removing them will break the app.
+      // For a stricter policy, implement CSP nonces via middleware.
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https://theunitedstates.io https://bioguide.congress.gov https://*.oyez.org",
@@ -37,6 +41,7 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  productionBrowserSourceMaps: false,
   async headers() {
     return [
       {

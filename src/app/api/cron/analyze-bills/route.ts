@@ -6,11 +6,20 @@
 
 import { prisma } from "@/lib/db";
 import { analyzeBill, detectRiders } from "@/lib/ai/claude-client";
+import { verifyCronSecret } from "@/lib/auth";
+import { acquireLock } from "@/lib/rate-limit";
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!verifyCronSecret(request)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const hasLock = await acquireLock("analyze-bills", 600);
+  if (!hasLock) {
+    return Response.json(
+      { error: "Another instance is already running" },
+      { status: 423 }
+    );
   }
 
   const results = { analyzed: 0, errors: 0, total: 0 };

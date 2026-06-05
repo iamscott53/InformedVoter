@@ -8,6 +8,7 @@
 // ─────────────────────────────────────────────
 
 import { prisma } from "@/lib/db";
+import { verifyCronSecret } from "@/lib/auth";
 import { OfficeType, ContributionSizeRange, DonorType, ExpenditureCategory } from "@prisma/client";
 
 const FEC_API_BASE = "https://api.open.fec.gov/v1";
@@ -733,11 +734,8 @@ export async function GET(request: Request) {
       );
     }
     console.log("[sync-campaign-finance] Manual trigger in development mode — skipping auth");
-  } else {
-    const authHeader = request.headers.get("authorization");
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  } else if (!verifyCronSecret(request)) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const apiKey = process.env.FEC_API_KEY;
@@ -750,8 +748,9 @@ export async function GET(request: Request) {
 
   // Allow caller to override how many candidates to process
   const limitParam = searchParams.get("limit");
-  const candidatesPerRun = limitParam
-    ? Math.min(Math.max(1, parseInt(limitParam, 10)), 200)
+  const limitParsed = limitParam ? parseInt(limitParam, 10) : NaN;
+  const candidatesPerRun = !isNaN(limitParsed)
+    ? Math.min(Math.max(1, limitParsed), 200)
     : DEFAULT_CANDIDATES_PER_RUN;
 
   const startTime = Date.now();

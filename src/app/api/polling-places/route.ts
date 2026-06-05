@@ -127,7 +127,7 @@ export async function GET(request: Request) {
         );
       }
 
-      return Response.json({ error: errorMessage }, { status: res.status });
+      return Response.json({ error: "Polling place lookup service error" }, { status: 502 });
     }
 
     const data: CivicVoterInfoResponse = await res.json();

@@ -92,20 +92,22 @@ Runs on **all** `/api/*` routes:
 
 | Route Prefix | Rate Limit | Auth |
 |--------------|-----------|------|
-| `/api/cron/*`, `/api/ai/*` | 300 req / 60s | Bearer token via `CRON_SECRET` (timing-safe compare) |
+| `/api/ai/*` | 300 req / 60s | Bearer token via `CRON_SECRET` (timing-safe compare) |
+| `/api/cron/*` | 300 req / 60s | Bearer token OR `?secret=` query param via `verifyCronSecret()` |
 | `/api/subscribe` (POST) | 5 req / 60s | None |
 | All other `/api/*` | 60 req / 60s | None |
 
 - Redis-backed fixed-window rate limiting (`src/lib/rate-limit.ts`).
 - Fails open when Redis is unavailable.
 - `timingSafeCompare` for constant-time token comparison (prevents timing attacks).
-- IP detection order: `cf-connecting-ip` → `x-real-ip` → `x-forwarded-for` → `"unknown"`
+- IP detection order: `cf-connecting-ip` → `x-vercel-forwarded-for` → `x-real-ip` → rightmost entry of `x-forwarded-for` → `"unknown"`
 
 ### Auth Flow
 - **No user login/auth system** — bookmarks are keyed by email (soft user model).
-- **Cron/AI routes** protected by `Authorization: Bearer <CRON_SECRET>`.
+- **AI routes** protected by `Authorization: Bearer <CRON_SECRET>`.
+- **Cron routes** protected by `verifyCronSecret(request)`, which checks Bearer header then `?secret=` query param.
 - **Dev bypass** — `ALLOW_MANUAL_CRON=true` + `?manual=true` (local only, cron routes).
-- `verifyCronSecret(request)` in `src/lib/auth.ts` uses Node's `timingSafeEqual`.
+- `verifyCronSecret(request)` in `src/lib/auth.ts` uses Node's `timingSafeEqual` with a dummy comparison on length mismatch to prevent secret-length leakage.
 
 ---
 

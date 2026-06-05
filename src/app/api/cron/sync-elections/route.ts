@@ -41,9 +41,10 @@ function inferElectionType(name: string): "PRIMARY" | "GENERAL" | "SPECIAL" | "R
   return "GENERAL";
 }
 
+import { verifyCronSecret } from "@/lib/auth";
+
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!verifyCronSecret(request)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 

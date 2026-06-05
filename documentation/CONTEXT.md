@@ -235,8 +235,8 @@ All cron jobs log results to `DataSyncLog`.
 - **`src/lib/ai/claude-client.ts`** — 5 typed functions: `analyzeBill`, `detectRiders`, `analyzeCandidatePolicy`, `analyzeCourtCase`, `generateSpeakingTemplate`. Includes `extractJson()` for parsing markdown code fences.
 
 ### Auth
-- **`src/middleware.ts`** — Rate limiting + cron auth on all `/api/*`. Supports BOTH `Authorization: Bearer` header AND `?secret=` query param (for Vercel Cron Jobs). `timingSafeCompare` for constant-time comparison.
-- **`src/lib/auth.ts`** — `verifyCronSecret()` using Node `timingSafeEqual`.
+- **`src/middleware.ts`** — Rate limiting + cron auth on all `/api/*`. Supports `Authorization: Bearer` header (AI routes) AND `?secret=` query param (cron routes). `timingSafeCompare` masks length differences to prevent timing attacks.
+- **`src/lib/auth.ts`** — `verifyCronSecret()` using Node `timingSafeEqual`. Performs a dummy constant-time comparison when token length differs to prevent secret-length leakage.
 - **No user login system.** App is fully public. Subscribers identified by email + token.
 
 ### Components

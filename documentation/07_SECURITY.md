@@ -12,10 +12,11 @@
 - Subscribers (`Subscriber` table) are identified by email + verification token.
 
 ### Cron / AI Route Authentication
-- Protected routes (`/api/cron/*`, `/api/ai/*`) require a Bearer token.
+- `/api/ai/*` requires `Authorization: Bearer <CRON_SECRET>`.
+- `/api/cron/*` uses `verifyCronSecret(request)`, which checks the Bearer header first, then falls back to `?secret=<CRON_SECRET>` query param (useful for Vercel Cron Jobs). All 13 cron route handlers enforce this.
 - Two implementations of constant-time comparison:
-  1. `src/middleware.ts`: Custom `timingSafeCompare()` using XOR (works in Edge Runtime)
-  2. `src/lib/auth.ts`: `verifyCronSecret()` using Node's `timingSafeEqual`
+  1. `src/middleware.ts`: Custom `timingSafeCompare()` using XOR (works in Edge Runtime; masks length differences)
+  2. `src/lib/auth.ts`: `verifyCronSecret()` using Node's `timingSafeEqual` (performs a dummy comparison on length mismatch to prevent length leakage)
 - **Dev bypass:** `ALLOW_MANUAL_CRON=true` + `?manual=true` allows local development without a token. **Never enable in production.**
 
 ---
@@ -42,7 +43,7 @@ There is **no RBAC** in this application. All public pages and API routes are un
 | Subscribe (`/api/subscribe` POST) | 5 requests | 60 seconds | `sub:${ip}` |
 
 - **Fail-open:** If Redis is unavailable, all requests are allowed.
-- IP detection order: `cf-connecting-ip` → `x-real-ip` → `x-forwarded-for` → `"unknown"`
+- IP detection order: `cf-connecting-ip` → `x-vercel-forwarded-for` → `x-real-ip` → rightmost entry of `x-forwarded-for` → `"unknown"`
 - Nginx adds an additional layer: `60r/m` for API, `5r/m` for subscribe.
 
 ---
@@ -55,10 +56,10 @@ Set in `next.config.mjs` and applied to all routes:
 |--------|-------|
 | `X-Frame-Options` | `DENY` |
 | `X-Content-Type-Options` | `nosniff` |
-| `X-XSS-Protection` | `1; mode=block` |
+| ~~`X-XSS-Protection`~~ | ~~`1; mode=block`~~ *(removed — deprecated and can introduce vulnerabilities)* |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` |
 | `Permissions-Policy` | `geolocation=(self), camera=(), microphone=(), payment=(), usb=()` |
-| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains; preload` |
 | `Content-Security-Policy` | `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://theunitedstates.io https://bioguide.congress.gov https://*.oyez.org; connect-src 'self' https://api.bigdatacloud.net https://ipapi.co https://api.usaspending.gov; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'` |
 
 Nginx headers are replaced by Next.js `headers()` config in `next.config.mjs`.
@@ -70,7 +71,7 @@ Nginx headers are replaced by Next.js `headers()` config in `next.config.mjs`.
 - **DOMPurify** (`isomorphic-dompurify`) is used for rendering external HTML.
 - **File:** `src/lib/sanitize.ts`
 - Allowed tags: `p`, `a`, `ul`, `li`, `ol`, `br`, `strong`, `em`, `h1`–`h4`, `blockquote`, `span`, `div`
-- Allowed attributes: `href`, `target`, `rel`, `class`
+- Allowed attributes: `href`, `rel`, `class` (`target` intentionally removed to prevent tabnabbing)
 - Applied to: Oyez case HTML (`question`, `factsOfTheCase`, `conclusion`), external agency descriptions
 
 ---
@@ -142,3 +143,4 @@ When migrating to Supabase, enable these protections:
 2. **No request signing** on webhooks — cron jobs are triggered by host-level HTTP calls; ensure cron sources are trusted.
 3. **CSP allows `unsafe-inline`** for scripts and styles — required by Next.js inline chunks; review if stricter CSP is needed.
 4. **Rate limit fail-open** — Redis downtime removes all rate limiting; monitor Redis health.
+5. **Rate limiter atomicity** — Uses `set nx` + `incr` to avoid race conditions between key creation and TTL assignment.

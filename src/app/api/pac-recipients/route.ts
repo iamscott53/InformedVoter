@@ -33,9 +33,18 @@ export async function GET(request: Request) {
   }
 
   const fecCommitteeIds = committeeIdsParam.split(",").map((s) => s.trim()).filter(Boolean);
-  const cycle = cycleParam ? parseInt(cycleParam, 10) : CURRENT_CYCLE;
-  const page = Math.max(1, parseInt(pageParam ?? "1", 10));
-  const limit = Math.min(100, Math.max(1, parseInt(limitParam ?? "50", 10)));
+  if (fecCommitteeIds.length > 50) {
+    return Response.json(
+      { error: "Too many committee IDs. Maximum is 50." },
+      { status: 400 }
+    );
+  }
+  const cycleRaw = cycleParam ? parseInt(cycleParam, 10) : CURRENT_CYCLE;
+  const cycle = isNaN(cycleRaw) ? CURRENT_CYCLE : cycleRaw;
+  const pageRaw = parseInt(pageParam ?? "1", 10);
+  const page = isNaN(pageRaw) ? 1 : Math.max(1, pageRaw);
+  const limitRaw = parseInt(limitParam ?? "50", 10);
+  const limit = isNaN(limitRaw) ? 50 : Math.min(100, Math.max(1, limitRaw));
   const offset = (page - 1) * limit;
   const validSort = VALID_SORT.has(sortBy) ? sortBy : "amount";
   const validDir = VALID_DIR.has(sortDir) ? sortDir : "desc";

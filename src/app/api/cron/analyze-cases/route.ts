@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { analyzeCourtCase } from "@/lib/ai/claude-client";
 import { verifyCronSecret } from "@/lib/auth";
+import { acquireLock } from "@/lib/rate-limit";
 
 // ─────────────────────────────────────────────
 // GET /api/cron/analyze-cases
@@ -23,6 +24,14 @@ function stripHtml(html: string): string {
 export async function GET(request: Request) {
   if (!verifyCronSecret(request)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const hasLock = await acquireLock("analyze-cases", 600);
+  if (!hasLock) {
+    return Response.json(
+      { error: "Another instance is already running" },
+      { status: 423 }
+    );
   }
 
   try {

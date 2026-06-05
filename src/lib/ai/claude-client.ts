@@ -52,13 +52,27 @@ export interface CandidatePolicyAnalysis {
 // ─────────────────────────────────────────────
 
 /**
+ * Wrap untrusted user content so that attempts to inject instructions
+ * are treated as data rather than commands. Any occurrence of the closing
+ * tag inside the text is stripped to prevent premature tag closure.
+ */
+function wrapUserContent(text: string): string {
+  const safe = text.replace(/<\/user_content>/gi, "");
+  return `<user_content>\n${safe}\n</user_content>`;
+}
+
+/**
  * Parse the first JSON object or array found in a string.
  * Handles Claude responses that wrap JSON in markdown code fences.
  */
 function extractJson<T>(text: string): T {
   const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   const raw = fenceMatch ? fenceMatch[1] : text;
-  return JSON.parse(raw.trim()) as T;
+  try {
+    return JSON.parse(raw.trim()) as T;
+  } catch {
+    throw new Error("Invalid JSON in Claude response");
+  }
 }
 
 function getTextContent(message: Anthropic.Message): string {
@@ -82,10 +96,10 @@ export async function analyzeBill(
 ): Promise<BillAnalysis> {
   const prompt = `You are a nonpartisan legislative analyst. Analyze the following bill and provide a clear, objective summary for everyday citizens.
 
-Bill Title: ${title}
+Bill Title: ${wrapUserContent(title)}
 
 Bill Text:
-${text.slice(0, 15000)}${text.length > 15000 ? "\n\n[Text truncated for brevity]" : ""}
+${wrapUserContent(text.slice(0, 15000))}${text.length > 15000 ? "\n\n[Text truncated for brevity]" : ""}
 
 Respond with a JSON object matching this exact structure:
 {
@@ -122,12 +136,12 @@ export async function detectRiders(
 ): Promise<RiderDetectionResult> {
   const prompt = `You are an expert legislative analyst specializing in identifying "riders" — provisions attached to a bill that are unrelated to its primary purpose.
 
-Bill Title: ${title}
+Bill Title: ${wrapUserContent(title)}
 
-Bill Summary: ${summary}
+Bill Summary: ${wrapUserContent(summary)}
 
 Bill Text:
-${text.slice(0, 20000)}${text.length > 20000 ? "\n\n[Text truncated for brevity]" : ""}
+${wrapUserContent(text.slice(0, 20000))}${text.length > 20000 ? "\n\n[Text truncated for brevity]" : ""}
 
 Analyze the bill text carefully and identify any provisions that:
 1. Are unrelated or loosely related to the bill's primary stated purpose
@@ -195,13 +209,13 @@ export async function analyzeCandidatePolicy(
       ? statements.map((s, i) => `${i + 1}. ${s}`).join("\n")
       : "No public statements available.";
 
-  const prompt = `You are a nonpartisan political analyst. Analyze ${name}'s (${party}, ${office}) position on ${category.replace(/_/g, " ").toLowerCase()} policy.
+  const prompt = `You are a nonpartisan political analyst. Analyze ${wrapUserContent(name)}'s (${wrapUserContent(party)}, ${wrapUserContent(office)}) position on ${wrapUserContent(category.replace(/_/g, " ").toLowerCase())} policy.
 
 Voting Record:
-${voteSummary}
+${wrapUserContent(voteSummary)}
 
 Public Statements:
-${statementSummary}
+${wrapUserContent(statementSummary)}
 
 Provide a balanced, factual analysis that presents both how supporters and critics view this candidate's positions. Do not take sides.
 
@@ -254,16 +268,16 @@ export async function analyzeCourtCase(
   const prompt = `You are a nonpartisan legal analyst writing for everyday Americans who are not lawyers.
 Summarize this Supreme Court case in plain English so anyone can understand it.
 
-Case: ${caseName}
+Case: ${wrapUserContent(caseName)}
 
 Question Presented:
-${question.slice(0, 3000)}
+${wrapUserContent(question.slice(0, 3000))}
 
 Facts of the Case:
-${facts.slice(0, 5000)}
+${wrapUserContent(facts.slice(0, 5000))}
 
 Conclusion/Ruling:
-${conclusion.slice(0, 5000)}
+${wrapUserContent(conclusion.slice(0, 5000))}
 
 Return valid JSON matching this schema exactly:
 {
@@ -315,10 +329,10 @@ export async function generateSpeakingTemplate(
 
   const prompt = `You are a grassroots civic organizer helping citizens speak at city council meetings. Your job is to write a compelling, fact-based public comment script arguing AGAINST a specific agenda item.
 
-AGENDA ITEM: ${agendaItemTitle}
-DESCRIPTION: ${agendaItemDescription || "No additional description provided."}
+AGENDA ITEM: ${wrapUserContent(agendaItemTitle)}
+DESCRIPTION: ${wrapUserContent(agendaItemDescription || "No additional description provided.")}
 
-Tone: ${tone}
+Tone: ${wrapUserContent(tone)}
 
 ${toneInstructions}
 
@@ -346,5 +360,18 @@ The body should be speakable in 2-3 minutes (roughly 300-450 words). Make it pow
     messages: [{ role: "user", content: prompt }],
   });
 
-  return extractJson<SpeakingTemplate>(getTextContent(message));
+  const result = extractJson<SpeakingTemplate>(getTextContent(message));
+
+  // Basic runtime validation to guard against malformed model output
+  if (
+    typeof result.opening !== "string" ||
+    typeof result.body !== "string" ||
+    typeof result.closing !== "string" ||
+    !Array.isArray(result.key_facts) ||
+    !Array.isArray(result.suggested_questions)
+  ) {
+    throw new Error("Malformed speaking template returned by AI");
+  }
+
+  return result;
 }

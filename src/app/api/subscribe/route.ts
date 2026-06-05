@@ -81,10 +81,11 @@ export async function POST(request: Request) {
       });
     }
 
+    // Never leak profileToken for unverified subscribers.
+    // The token is only exposed after email verification.
     return Response.json({
       success: true,
       message: "Check your email to confirm your subscription.",
-      profileToken: subscriber.profileToken,
     });
   } catch (error) {
     console.error("[subscribe] Error:", error);

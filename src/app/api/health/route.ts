@@ -3,31 +3,24 @@ import { prisma } from "@/lib/db";
 
 // ─────────────────────────────────────────────
 // GET /api/health
-// Simple health check for load balancers and monitoring
+// Simple health check for load balancers and monitoring.
+// Returns minimal info publicly; detailed checks are logged server-side.
 // ─────────────────────────────────────────────
 
 export async function GET() {
-  const checks: Record<string, "ok" | "error"> = {
-    app: "ok",
-    database: "ok",
-  };
-
-  let status = 200;
+  let dbOk = true;
 
   try {
     // Lightweight DB check
     await prisma.$queryRaw`SELECT 1`;
-  } catch (err) {
-    checks.database = "error";
-    status = 503;
+  } catch {
+    dbOk = false;
   }
 
+  const status = dbOk ? 200 : 503;
+
   return NextResponse.json(
-    {
-      status: status === 200 ? "healthy" : "degraded",
-      checks,
-      timestamp: new Date().toISOString(),
-    },
+    { status: dbOk ? "ok" : "degraded" },
     { status }
   );
 }

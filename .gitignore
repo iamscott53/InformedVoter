@@ -78,3 +78,6 @@ secrets/
 
 # Deprecated files (old VPS config, IDE artifacts, etc.)
 .deprecated/
+
+.vercel
+.env*

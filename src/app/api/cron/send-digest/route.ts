@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { resend, EMAIL_FROM, BASE_URL } from "@/lib/resend";
 import { verifyCronSecret } from "@/lib/auth";
+import { acquireLock } from "@/lib/rate-limit";
 import {
   buildDigestEmail,
   type DigestBill,
@@ -34,6 +35,14 @@ const DEFAULT_LOOKBACK_DAYS = 7;
 export async function GET(request: Request) {
   if (!verifyCronSecret(request)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const hasLock = await acquireLock("send-digest", 600);
+  if (!hasLock) {
+    return Response.json(
+      { error: "Another instance is already running" },
+      { status: 423 }
+    );
   }
 
   if (!resend) {

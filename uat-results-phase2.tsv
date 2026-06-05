@@ -1,0 +1,51 @@
+Type	Route	Message	Detail
+PASS	/nonexistent	Custom 404 page rendered	
+PASS	/api/nonexistent-route	Status 404	
+PASS	/api/health	CORS header present: *	
+PASS	/api/bills?limit=1	CORS header present: *	
+PASS	/api/candidates?limit=1	CORS header present: *	
+PASS	OPTIONS /api/health	Preflight status 204	
+PASS	/	Valid JSON-LD: Organization	
+PASS	/about	Valid JSON-LD: Organization	
+PASS	/judicial	Valid JSON-LD: Organization	
+PASS	/state/VA	Valid JSON-LD: Organization	
+PASS	/	Title: InformedVoter — Your Government, In Plain English	
+PASS	/ [desc]	Description present (143 chars)	
+PASS	/ [og]	Open Graph title present	
+PASS	/ [viewport]	Viewport present	
+PASS	/about	Title: About InformedVoter | InformedVoter	
+PASS	/about [desc]	Description present (117 chars)	
+PASS	/about [og]	Open Graph title present	
+PASS	/about [viewport]	Viewport present	
+PASS	/state/VA	Title: Virginia Voter Dashboard | InformedVoter	
+PASS	/state/VA [desc]	Description present (97 chars)	
+PASS	/state/VA [og]	Open Graph title present	
+PASS	/state/VA [viewport]	Viewport present	
+PASS	/judicial	Title: Judicial Branch — Supreme Court | InformedVoter	
+PASS	/judicial [desc]	Description present (115 chars)	
+PASS	/judicial [og]	Open Graph title present	
+PASS	/judicial [viewport]	Viewport present	
+PASS	/api/subscribe (SQLi attempt)	Status 400	
+PASS	/api/subscribe (XSS attempt)	Status 400	
+PASS	/api/subscribe (long email)	Status 400	
+PASS	/api/local/meetings/submit (XSS)	Status 400	
+PASS	/api/subscribe rate limit	Rate limit triggered (429 seen after 3 reqs)	
+PASS	/sitemap.xml	1125 URLs found	
+PASS	/state/al	Sitemap URL status 200	
+PASS	/state/al/bills	Sitemap URL status 200	
+PASS	/state/al/senators	Sitemap URL status 200	
+PASS	/sitemap.xml	No state-legislature URLs (correct)	
+PASS	/api/bills?limit=99999	Handled gracefully: 200	
+PASS	/api/bills?limit=-1	Handled gracefully: 200	
+PASS	/api/bills?limit=abc	Handled gracefully: 200	
+PASS	/api/bills?page=99999	Handled gracefully: 200	
+PASS	/api/candidates?party=INVALID_PARTY	Handled gracefully: 200	
+PASS	/api/scotus/justices?limit=0	Handled gracefully: 200	
+PASS	/api/search?q=<script>alert(1)</script>	Handled gracefully: 200	
+PASS	/compare	Page loads	
+PASS	/state/VA/bills/119-hr-9027	Status 200	
+PASS	/state/VA/bills/119-hr-9042	Status 200	
+PASS	/state/VA/bills/119-hr-9032	Status 200	
+PASS	/candidate/1175	Status 200	
+PASS	/candidate/983	Status 200	
+PASS	/candidate/1056	Status 200	

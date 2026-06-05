@@ -58,7 +58,7 @@ Completed changes:
 - **Database:** Prisma schema updated with `directUrl` for Supabase; 4 new local gov tables created; RLS policies applied
 - **Cache:** Upstash Redis database `informedvoter-redis` provisioned in `us-east-1`
 - **Config:** `vercel.json` created with 13 cron schedules; `next.config.mjs` updated for Vercel
-- **Auth:** Middleware fixed — `/api/cron/*` no longer requires auth (rate-limited only); `/api/ai/*` still requires Bearer token
+- **Auth:** All `/api/cron/*` routes now enforce `verifyCronSecret(request)` (Bearer header or `?secret=` query param). `/api/ai/*` still requires Bearer token. Timing-attack protections hardened in both middleware and auth helper.
 - **Env:** `DATABASE_URL`, `DIRECT_URL`, `UPSTASH_REDIS_URL`, `UPSTASH_REDIS_TOKEN`, `CRON_SECRET` configured in `.env`
 
 ---
