@@ -1,6 +1,6 @@
 # 10 — Testing
 
-> **Last Updated:** 2026-05-30
+> **Last Updated:** 2026-06-05
 
 ---
 
@@ -16,6 +16,23 @@ The project has no configuration for:
 - Any other test runner
 
 If tests are added, place the configuration at the project root and update this file.
+
+---
+
+## UAT (User Acceptance Testing)
+
+A full UAT was completed on 2026-06-05 against the production environment.
+- **190+ test cases** executed
+- **175 passed**, **2 critical issues fixed during testing**, **3 active issues flagged**
+- See `UAT_REPORT.md` for the complete report with remediation plan
+
+### Automated Test Scripts
+
+Reusable Node.js test scripts are committed to the repo:
+- `uat-test.mjs` — Phase 1: smoke tests for all pages, APIs, forms, security headers
+- `uat-test-phase2.mjs` — Phase 2: deep-dive tests for images, CORS, structured data, SEO, rate limiting, edge cases
+
+Run with: `node uat-test.mjs` and `node uat-test-phase2.mjs`
 
 ---
 
@@ -40,7 +57,7 @@ If tests are added, place the configuration at the project root and update this 
 
 | Endpoint | Test | Expected Result |
 |----------|------|-----------------|
-| `GET /api/health` | curl / browser | `{ status: "healthy", checks: { app, database } }` |
+| `GET /api/health` | curl / browser | `{ status: "ok" }` |
 | `GET /api/search?q=tax` | Search | Returns relevant bills and candidates |
 | `GET /api/bills?status=SIGNED` | Filter | Only signed bills returned |
 | `GET /api/candidates?state=CA` | Filter | Only CA candidates returned, capped at 200 |

@@ -1,6 +1,6 @@
 # 07 — Security
 
-> **Last Updated:** 2026-05-30
+> **Last Updated:** 2026-06-05
 
 ---
 
@@ -44,7 +44,7 @@ There is **no RBAC** in this application. All public pages and API routes are un
 
 - **Fail-open:** If Redis is unavailable, all requests are allowed.
 - IP detection order: `cf-connecting-ip` → `x-vercel-forwarded-for` → `x-real-ip` → rightmost entry of `x-forwarded-for` → `"unknown"`
-- Nginx adds an additional layer: `60r/m` for API, `5r/m` for subscribe.
+
 
 ---
 
@@ -68,11 +68,12 @@ Nginx headers are replaced by Next.js `headers()` config in `next.config.mjs`.
 
 ## Input Sanitization
 
-- **DOMPurify** (`isomorphic-dompurify`) is used for rendering external HTML.
+- **`sanitize-html`** (pure-JS `htmlparser2`) is used for rendering external HTML.
 - **File:** `src/lib/sanitize.ts`
-- Allowed tags: `p`, `a`, `ul`, `li`, `ol`, `br`, `strong`, `em`, `h1`–`h4`, `blockquote`, `span`, `div`
-- Allowed attributes: `href`, `rel`, `class` (`target` intentionally removed to prevent tabnabbing)
-- Applied to: Oyez case HTML (`question`, `factsOfTheCase`, `conclusion`), external agency descriptions
+- Replaced `isomorphic-dompurify` on 2026-06-05 because `jsdom` → `parse5@8` (ESM-only) crashed in Vercel serverless with `ERR_REQUIRE_ESM`.
+- Allowed tags: `p`, `a`, `ul`, `li`, `ol`, `br`, `strong`, `em`, `h1`–`h6`, `blockquote`, `span`, `div`, `pre`, `code`, `table`, `thead`, `tbody`, `tr`, `td`, `th`
+- Allowed attributes: `href`, `rel`, `class`, `title` (`target` intentionally removed to prevent tabnabbing)
+- Applied to: Oyez case HTML (`question`, `factsOfTheCase`, `conclusion`), justice biographies, external agency descriptions
 
 ---
 

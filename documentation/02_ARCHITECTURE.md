@@ -1,6 +1,6 @@
 # 02 — Architecture
 
-> **Last Updated:** 2026-05-30
+> **Last Updated:** 2026-06-05
 
 ---
 
@@ -204,6 +204,8 @@ All functions return typed JSON parsed from Claude responses.
 The client includes `extractJson()` to handle markdown code fences in model output.
 
 **Cost control:** Batch routes limit to 5–10 items per run with 500ms–1000ms delays between calls.
+
+**Security:** `wrapUserContent()` prevents prompt injection by wrapping user text in `<user_content>` tags and stripping premature closers.
 
 ---
 

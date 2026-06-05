@@ -1,6 +1,6 @@
 # InformedVoter — Project Context
 
-> **Last Updated:** 2026-05-30  
+> **Last Updated:** 2026-06-05  
 > **Purpose:** Paste this into a new AI chat session to bring it up to speed on the entire project.
 
 ---
@@ -50,7 +50,7 @@
 - **DIRECT_URL** (migrations, seeds, Prisma Studio):  
   `postgresql://postgres:[PASSWORD]@db.hzzcqcsgcreloxashaph.supabase.co:5432/postgres`
 - **DATABASE_URL** (Vercel runtime, pooler):  
-  `postgresql://postgres.hzzcqcsgcreloxashaph:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true`
+  `postgresql://postgres.hzzcqcsgcreloxashaph:[PASSWORD]@aws-1-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true`
 
 ### Schema Status
 - **Existing tables** (already in Supabase): `State`, `Candidate`, `Bill`, `CourtCase`, `Justice`, `Election`, `VoterInfo`, `Committee`, `PacContribution`, `DataSyncLog`, `User`, `UserBookmark`, `Subscriber`, and all finance/judicial tables.
@@ -282,7 +282,7 @@ User → Vercel Edge Network (CDN + SSL)
 
 | Issue | Context | Decision Needed |
 |-------|---------|-----------------|
-| **Vercel env vars** | `DATABASE_URL`, `DIRECT_URL`, `UPSTASH_REDIS_URL`, `UPSTASH_REDIS_TOKEN`, `CRON_SECRET`, `NEXT_PUBLIC_BASE_URL` need to be added to Vercel dashboard | Add in Vercel Project → Settings → Environment Variables |
+| **PAC Recipients API** | `/api/pac-recipients` requires `committeeIds` — no list-all support | Add `GET /api/pac-recipients?limit=N` without required `committeeIds` |
 | **Optional API keys** | `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, data API keys not yet configured | Add when ready; app works without them (syncs skip missing sources) |
 | **No automated tests** | Zero test suite (Jest, Vitest, Playwright, Cypress) | Add tests? Which runner? |
 | **No formal DB migrations** | Uses `prisma db push` only | Switch to `prisma migrate dev` + Supabase migrations? |
@@ -354,12 +354,16 @@ npm run db:studio        # Prisma Studio GUI
 - ✅ CRON_SECRET generated
 - ✅ Middleware fixed for Vercel Cron Jobs
 - ✅ Build passes
+- ✅ All Vercel env vars configured
+- ✅ Database connected (pooler endpoint corrected `aws-0` → `aws-1`)
+- ✅ Security audit deployed (18 hardening measures)
+- ✅ UAT completed (190+ cases, 175 passes)
 
 **Remaining:**
-1. **Add env vars to Vercel Dashboard:** `DATABASE_URL`, `DIRECT_URL`, `UPSTASH_REDIS_URL`, `UPSTASH_REDIS_TOKEN`, `CRON_SECRET`, `NEXT_PUBLIC_BASE_URL`
+1. **Fix 3 UAT issues:** PAC recipients list-all, city 404 status, unsubscribe POST status code
 2. **Add optional API keys** when ready: `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, data API keys
-3. **Deploy:** Push to `main` triggers Vercel auto-deploy
-4. **Verify:** Check `/api/health`, homepage, and a few data pages
+3. **Add automated tests** — Jest/Vitest + Playwright
+4. **Monitor:** Check `/api/health`, cron job logs, DataSyncLog table
 
 ---
 
@@ -392,7 +396,7 @@ src/
     rate-limit.ts         # Upstash Redis rate limiter
     auth.ts               # Cron auth helper
     resend.ts             # Email client
-    sanitize.ts           # DOMPurify wrapper
+    sanitize.ts           # sanitize-html wrapper (pure JS, no DOM)
     utils.ts              # cn(), formatters, color helpers
     agencies.ts           # 20 federal agencies (static catalog)
     fec.ts                # OpenFEC helpers
