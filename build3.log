@@ -1,0 +1,96 @@
+▲ Next.js 16.2.1 (Turbopack)
+- Environments: .env.local, .env.production, .env
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 2.8s
+  Running TypeScript ...
+  Finished TypeScript in 4.4s ...
+  Collecting page data using 31 workers ...
+  Generating static pages using 31 workers (0/75) ...
+  Generating static pages using 31 workers (18/75) 
+  Generating static pages using 31 workers (37/75) 
+  Generating static pages using 31 workers (56/75) 
+✓ Generating static pages using 31 workers (75/75) in 2.3s
+  Finalizing page optimization ...
+
+Route (app)                             Revalidate  Expire
+┌ ○ /
+├ ○ /_not-found
+├ ○ /about                                      1d      1y
+├ ○ /agencies
+├ ƒ /agencies/[slug]
+├ ƒ /api/agencies
+├ ƒ /api/ai/analyze-bill
+├ ƒ /api/ai/analyze-candidate
+├ ƒ /api/bills
+├ ƒ /api/candidates
+├ ƒ /api/cron/analyze-bills
+├ ƒ /api/cron/analyze-candidates
+├ ƒ /api/cron/analyze-cases
+├ ƒ /api/cron/send-digest
+├ ƒ /api/cron/sync-bills
+├ ƒ /api/cron/sync-campaign-finance
+├ ƒ /api/cron/sync-elections
+├ ƒ /api/cron/sync-local-meetings
+├ ƒ /api/cron/sync-members
+├ ƒ /api/cron/sync-pac-contributions
+├ ƒ /api/cron/sync-scotus
+├ ƒ /api/cron/sync-voter-info
+├ ƒ /api/cron/sync-votes
+├ ƒ /api/district-lookup
+├ ƒ /api/health
+├ ƒ /api/local/meeting/[id]
+├ ƒ /api/local/meetings
+├ ƒ /api/local/meetings/submit
+├ ƒ /api/local/municipality
+├ ƒ /api/local/template
+├ ƒ /api/pac-recipients
+├ ƒ /api/polling-places
+├ ƒ /api/scotus/cases
+├ ƒ /api/scotus/justices
+├ ƒ /api/search
+├ ƒ /api/subscribe
+├ ƒ /api/subscribe/demographics
+├ ƒ /api/subscribe/verify
+├ ƒ /api/unsubscribe
+├ ƒ /bills
+├ ƒ /candidate/[candidateId]
+├ ○ /compare
+├ ○ /contact                                    1d      1y
+├ ○ /elections
+├ ○ /icon.svg
+├ ○ /judicial
+├ ƒ /judicial/cases/[...slug]
+├ ƒ /judicial/justices/[slug]
+├ ○ /local
+├ ƒ /local/city/[id]
+├ ƒ /local/meeting/[id]
+├ ○ /local/rules
+├ ○ /local/templates
+├ ○ /pac-recipients
+├ ● /pac-recipients/[slug]
+│ ├ /pac-recipients/aipac
+│ ├ /pac-recipients/jstreet
+│ ├ /pac-recipients/dmfi
+│ └ [+19 more paths]
+├ ○ /polling-places
+├ ○ /privacy                                    1d      1y
+├ ○ /robots.txt
+├ ○ /sitemap.xml
+├ ƒ /state/[stateAbbr]
+├ ƒ /state/[stateAbbr]/bills
+├ ƒ /state/[stateAbbr]/bills/[billId]
+├ ƒ /state/[stateAbbr]/elections
+├ ƒ /state/[stateAbbr]/governor
+├ ƒ /state/[stateAbbr]/representatives
+├ ƒ /state/[stateAbbr]/senators
+├ ƒ /state/[stateAbbr]/voter-info
+└ ○ /voter-info
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+

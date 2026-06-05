@@ -16,6 +16,8 @@ import {
 import { prisma } from "@/lib/db";
 import AnimatedSection from "@/components/features/AnimatedSection";
 
+export const dynamic = "force-dynamic";
+
 interface CityPageProps {
   params: Promise<{ id: string }>;
 }
