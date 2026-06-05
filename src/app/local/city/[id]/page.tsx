@@ -25,7 +25,9 @@ export async function generateMetadata({ params }: CityPageProps): Promise<Metad
   const municipality = await prisma.municipality.findUnique({
     where: { id },
   });
-  if (!municipality) return { title: "City Not Found" };
+  if (!municipality) {
+    notFound();
+  }
   return {
     title: `${municipality.name}, ${municipality.state} — Local Meetings`,
     description: `Upcoming city council meetings for ${municipality.name}. Find city hall location, meeting agendas, and speaking templates.`,

@@ -25,20 +25,19 @@ export async function GET(request: Request) {
   const sortBy = searchParams.get("sortBy") ?? "amount";
   const sortDir = searchParams.get("sortDir") ?? "desc";
 
-  if (!committeeIdsParam) {
-    return Response.json(
-      { error: "committeeIds parameter is required (comma-separated FEC committee IDs)" },
-      { status: 400 }
-    );
+  let fecCommitteeIds: string[] = [];
+  if (committeeIdsParam) {
+    fecCommitteeIds = committeeIdsParam.split(",").map((s) => s.trim()).filter(Boolean);
+    if (fecCommitteeIds.length > 50) {
+      return Response.json(
+        { error: "Too many committee IDs. Maximum is 50." },
+        { status: 400 }
+      );
+    }
   }
 
-  const fecCommitteeIds = committeeIdsParam.split(",").map((s) => s.trim()).filter(Boolean);
-  if (fecCommitteeIds.length > 50) {
-    return Response.json(
-      { error: "Too many committee IDs. Maximum is 50." },
-      { status: 400 }
-    );
-  }
+  // If no committeeIds provided, discover all committees (capped at 50 for performance)
+  const discoverMode = fecCommitteeIds.length === 0;
   const cycleRaw = cycleParam ? parseInt(cycleParam, 10) : CURRENT_CYCLE;
   const cycle = isNaN(cycleRaw) ? CURRENT_CYCLE : cycleRaw;
   const pageRaw = parseInt(pageParam ?? "1", 10);
@@ -50,13 +49,23 @@ export async function GET(request: Request) {
   const validDir = VALID_DIR.has(sortDir) ? sortDir : "desc";
 
   try {
-    // Resolve committee DB IDs from FEC committee IDs
-    const committees = await prisma.committee.findMany({
-      where: { fecCommitteeId: { in: fecCommitteeIds } },
-      select: { id: true, fecCommitteeId: true, name: true },
-    });
+    // Resolve committee DB IDs
+    let committeeDbIds: number[] = [];
+    let committees: { id: number; fecCommitteeId: string | null; name: string }[] = [];
 
-    const committeeDbIds = committees.map((c) => c.id);
+    if (discoverMode) {
+      committees = await prisma.committee.findMany({
+        take: 50,
+        select: { id: true, fecCommitteeId: true, name: true },
+      });
+    } else {
+      committees = await prisma.committee.findMany({
+        where: { fecCommitteeId: { in: fecCommitteeIds } },
+        select: { id: true, fecCommitteeId: true, name: true },
+      });
+    }
+
+    committeeDbIds = committees.map((c) => c.id);
 
     if (committeeDbIds.length === 0) {
       return Response.json({

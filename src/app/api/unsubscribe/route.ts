@@ -15,7 +15,7 @@ function escapeHtml(text: string): string {
     .replace(/'/g, "&#39;");
 }
 
-function htmlPage(title: string, message: string): Response {
+function htmlPage(title: string, message: string, status = 200): Response {
   const safeTitle = escapeHtml(title);
   const safeMessage = escapeHtml(message);
   return new Response(
@@ -33,7 +33,7 @@ function htmlPage(title: string, message: string): Response {
   </div>
 </body>
 </html>`,
-    { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }
+    { status, headers: { "Content-Type": "text/html; charset=utf-8" } }
   );
 }
 
@@ -43,7 +43,7 @@ async function handleUnsubscribe(request: Request): Promise<Response> {
     const token = searchParams.get("token")?.trim();
 
     if (!token) {
-      return htmlPage("Invalid Link", "This unsubscribe link is missing or malformed.");
+      return htmlPage("Invalid Link", "This unsubscribe link is missing or malformed.", 400);
     }
 
     const subscriber = await prisma.subscriber.findUnique({
@@ -51,7 +51,7 @@ async function handleUnsubscribe(request: Request): Promise<Response> {
     });
 
     if (!subscriber) {
-      return htmlPage("Invalid Link", "This unsubscribe link is invalid or has already been used.");
+      return htmlPage("Invalid Link", "This unsubscribe link is invalid or has already been used.", 400);
     }
 
     // GET shows a confirmation page; POST performs the deletion.
@@ -88,7 +88,7 @@ async function handleUnsubscribe(request: Request): Promise<Response> {
     );
   } catch (error) {
     console.error("[unsubscribe] Error:", error);
-    return htmlPage("Something Went Wrong", "Please try again later.");
+    return htmlPage("Something Went Wrong", "Please try again later.", 500);
   }
 }
 
