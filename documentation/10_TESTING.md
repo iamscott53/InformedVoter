@@ -6,16 +6,20 @@
 
 ## Automated Testing
 
-**There is currently no automated test suite.**
+The project uses **Vitest** for unit testing.
 
-The project has no configuration for:
-- Jest
-- Vitest
-- Playwright
-- Cypress
-- Any other test runner
+| Command | Purpose |
+|---------|---------|
+| `npm test` | Run tests once |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run test:coverage` | Run tests with coverage report |
 
-If tests are added, place the configuration at the project root and update this file.
+**Test files:**
+- `src/lib/__tests__/errors.test.ts` — AppError base class + 8 subclasses, toJSON(), toLogObject()
+- `src/lib/__tests__/api-error-handler.test.ts` — withErrorHandler, withCronErrorHandler, error mapping (Prisma, Anthropic, network, generic)
+- `src/lib/__tests__/error-logger.test.ts` — structured logging, PII awareness, logUnexpected
+
+**Note:** E2E testing (Playwright/Cypress) is not yet configured.
 
 ---
 

@@ -138,6 +138,16 @@ When migrating to Supabase, enable these protections:
 
 ---
 
+## Error Sanitization
+
+**Implementation:** `src/lib/api-error-handler.ts` + `src/lib/errors/`
+
+- All API routes wrapped with `withErrorHandler` (public APIs) or `withCronErrorHandler` (cron jobs)
+- Typed error hierarchy: `AppError` abstract base + 8 domain subclasses (`ValidationError`, `NotFoundError`, `DatabaseError`, `ExternalAPIError`, `RateLimitError`, `AuthenticationError`, `AIProcessingError`, `ServerError`)
+- **NEVER exposed to clients:** raw error messages, stack traces, subsystem names ("Prisma", "Redis", "Claude", "Legistar"), internal codes (P2002), API keys, or file paths
+- **Always logged server-side:** full details with `requestId` for traceability via `src/lib/error-logger.ts`
+- Cron routes return HTTP 200 on failure to prevent Vercel infinite retry loops
+
 ## Known Limitations
 
 1. **No CSRF protection** on API routes — not applicable since there are no state-changing authenticated user actions (only cron jobs use auth).

@@ -284,7 +284,7 @@ User → Vercel Edge Network (CDN + SSL)
 |-------|---------|-----------------|
 | **Loading UX trade-off** | Root `loading.tsx` removed to fix 404 statuses | Use inline `<Suspense>` with fallback JSX for granular loading states without breaking `notFound()` |
 | **Optional API keys** | `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, data API keys not yet configured | Add when ready; app works without them (syncs skip missing sources) |
-| **No automated tests** | Zero test suite (Jest, Vitest, Playwright, Cypress) | Add tests? Which runner? |
+| ~~**No automated tests**~~ | **Vitest unit tests added** (33 tests). E2E (Playwright/Cypress) still needed | Add E2E tests? |
 | **No formal DB migrations** | Uses `prisma db push` only | Switch to `prisma migrate dev` + Supabase migrations? |
 | **No user auth** | App is fully public. No login/session system. | Keep it public, or add Supabase Auth later? |
 | **Long cron timeouts** | `sync-campaign-finance` can run for minutes | Vercel Hobby = 10s timeout, Pro = 60s. Break into batches or use Edge Functions? |
@@ -361,10 +361,15 @@ npm run db:studio        # Prisma Studio GUI
 
 **Remaining:**
 1. **Add optional API keys** when ready: `ANTHROPIC_API_KEY`, `RESEND_API_KEY`, data API keys
-2. **Add automated tests** — Jest/Vitest + Playwright
+2. ~~**Add automated tests** — Jest/Vitest~~ ✅ **Vitest unit tests complete** (33 tests). **E2E tests** (Playwright) still needed
 3. **Monitor:** Check `/api/health`, cron job logs, DataSyncLog table
 
 **Recent Fixes (2026-06-05):**
+- Phase 1–6: Complete error handling infrastructure (AppError hierarchy, typed wrappers, sanitized client responses, structured logging)
+- Phase 3: All 33 API routes wrapped with `withErrorHandler` / `withCronErrorHandler`
+- Phase 4: AI/external API clients sanitized (no raw error leakage)
+- Phase 5: Vitest test suite (33 tests) + critical `fec.ts` API key security fix
+- Phase 6: Documentation synced
 - PAC recipients API now supports list-all mode (no `committeeIds` required)
 - City 404 status fixed by removing root `loading.tsx` Suspense boundary
 - Unsubscribe returns 400 for invalid tokens

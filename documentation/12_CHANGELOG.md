@@ -96,7 +96,7 @@ Completed changes:
 ## Known Issues & TODOs
 
 ### Testing
-- **No automated test suite.** Add Jest/Vitest for unit tests and Playwright for E2E.
+- ~~**No automated test suite.**~~ **Vitest unit test suite added** (33 tests across errors, api-error-handler, error-logger). E2E tests (Playwright/Cypress) still needed.
 
 ### Data Sync
 - Local meeting data is fragmented; coverage requires building adapters for multiple platforms (Legistar, CivicPlus, etc.).
@@ -124,6 +124,7 @@ Completed changes:
 
 | Date | Change |
 |------|--------|
+| 2026-06-05 | Phase 6 complete: Error handling infrastructure, Vitest tests, docs synced |
 | 2026-06-05 | UAT completed; sanitize-html fix deployed; DB connection restored; docs synced |
 | 2026-06-05 | Full security audit deployed (18 hardening measures) |
 | 2026-05-30 | Comprehensive documentation updated with deep codebase analysis |
