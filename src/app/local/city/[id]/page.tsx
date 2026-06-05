@@ -23,17 +23,21 @@ interface CityPageProps {
 }
 
 export async function generateMetadata({ params }: CityPageProps): Promise<Metadata> {
-  const { id } = await params;
-  const municipality = await prisma.municipality.findUnique({
-    where: { id },
-  });
-  if (!municipality) {
-    notFound();
+  try {
+    const { id } = await params;
+    const municipality = await prisma.municipality.findUnique({
+      where: { id },
+    });
+    if (!municipality) {
+      notFound();
+    }
+    return {
+      title: `${municipality.name}, ${municipality.state} — Local Meetings`,
+      description: `Upcoming city council meetings for ${municipality.name}. Find city hall location, meeting agendas, and speaking templates.`,
+    };
+  } catch {
+    return { title: "Local Government — InformedVoter" };
   }
-  return {
-    title: `${municipality.name}, ${municipality.state} — Local Meetings`,
-    description: `Upcoming city council meetings for ${municipality.name}. Find city hall location, meeting agendas, and speaking templates.`,
-  };
 }
 
 export default async function CityPage({ params }: CityPageProps) {

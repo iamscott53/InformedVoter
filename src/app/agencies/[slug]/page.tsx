@@ -91,26 +91,28 @@ export default async function AgencyDetailPage({ params }: AgencyPageProps) {
   // Fetch budget data and related bills in parallel
   const [budget, relatedBills] = await Promise.all([
     fetchBudgetForAgency(agency.toptierCode),
-    prisma.bill.findMany({
-      where: {
-        OR: agency.billSearchTerms.map((term) => ({
-          title: { contains: term, mode: "insensitive" as const },
-        })),
-      },
-      select: {
-        id: true,
-        externalId: true,
-        title: true,
-        shortTitle: true,
-        chamber: true,
-        status: true,
-        introducedDate: true,
-        executiveSummary: true,
-        congressGovUrl: true,
-      },
-      orderBy: { introducedDate: "desc" },
-      take: 20,
-    }),
+    prisma.bill
+      .findMany({
+        where: {
+          OR: agency.billSearchTerms.map((term) => ({
+            title: { contains: term, mode: "insensitive" as const },
+          })),
+        },
+        select: {
+          id: true,
+          externalId: true,
+          title: true,
+          shortTitle: true,
+          chamber: true,
+          status: true,
+          introducedDate: true,
+          executiveSummary: true,
+          congressGovUrl: true,
+        },
+        orderBy: { introducedDate: "desc" },
+        take: 20,
+      })
+      .catch(() => []),
   ]);
 
   const categoryColor = CATEGORY_COLORS[agency.category];

@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { PolicyCategory, VoteChoice } from "@/types";
+import { AIProcessingError } from "@/lib/errors";
 
 // ─────────────────────────────────────────────
 // Client initialisation
@@ -71,14 +72,14 @@ function extractJson<T>(text: string): T {
   try {
     return JSON.parse(raw.trim()) as T;
   } catch {
-    throw new Error("Invalid JSON in Claude response");
+    throw new AIProcessingError("Unable to parse the analysis result. Please try again later.");
   }
 }
 
 function getTextContent(message: Anthropic.Message): string {
   const block = message.content.find((b) => b.type === "text");
   if (!block || block.type !== "text") {
-    throw new Error("No text content in Claude response");
+    throw new AIProcessingError("The analysis returned an unexpected format. Please try again later.");
   }
   return block.text;
 }
@@ -113,13 +114,18 @@ Respond with a JSON object matching this exact structure:
 
 Be factual and nonpartisan. Do not editorialize or take sides.`;
 
-  const message = await anthropic.messages.create({
-    model: "claude-haiku-4-5",
-    max_tokens: 1024,
-    messages: [{ role: "user", content: prompt }],
-  });
+  try {
+    const message = await anthropic.messages.create({
+      model: "claude-haiku-4-5",
+      max_tokens: 1024,
+      messages: [{ role: "user", content: prompt }],
+    });
 
-  return extractJson<BillAnalysis>(getTextContent(message));
+    return extractJson<BillAnalysis>(getTextContent(message));
+  } catch (error) {
+    if (error instanceof AIProcessingError) throw error;
+    throw new AIProcessingError("Unable to analyze the bill at this time. Please try again later.");
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -164,13 +170,18 @@ Respond with a JSON object matching this exact structure:
 
 If no riders are found, return an empty array for "riders" and set "has_riders" to false.`;
 
-  const message = await anthropic.messages.create({
-    model: "claude-sonnet-4-5",
-    max_tokens: 2048,
-    messages: [{ role: "user", content: prompt }],
-  });
+  try {
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-5",
+      max_tokens: 2048,
+      messages: [{ role: "user", content: prompt }],
+    });
 
-  return extractJson<RiderDetectionResult>(getTextContent(message));
+    return extractJson<RiderDetectionResult>(getTextContent(message));
+  } catch (error) {
+    if (error instanceof AIProcessingError) throw error;
+    throw new AIProcessingError("Unable to detect riders at this time. Please try again later.");
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -238,13 +249,18 @@ Respond with a JSON object matching this exact structure:
 
 The consistency_score (0-100) reflects how consistently their votes align with their stated positions — it is not a quality judgment.`;
 
-  const message = await anthropic.messages.create({
-    model: "claude-sonnet-4-5",
-    max_tokens: 1024,
-    messages: [{ role: "user", content: prompt }],
-  });
+  try {
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-5",
+      max_tokens: 1024,
+      messages: [{ role: "user", content: prompt }],
+    });
 
-  return extractJson<CandidatePolicyAnalysis>(getTextContent(message));
+    return extractJson<CandidatePolicyAnalysis>(getTextContent(message));
+  } catch (error) {
+    if (error instanceof AIProcessingError) throw error;
+    throw new AIProcessingError("Unable to analyze candidate policy at this time. Please try again later.");
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -285,13 +301,18 @@ Return valid JSON matching this schema exactly:
   "impact_analysis": "2-3 sentences explaining the real-world impact. How does this ruling affect ordinary people? What changes because of this decision? Be specific and practical."
 }`;
 
-  const message = await anthropic.messages.create({
-    model: "claude-haiku-4-5",
-    max_tokens: 1024,
-    messages: [{ role: "user", content: prompt }],
-  });
+  try {
+    const message = await anthropic.messages.create({
+      model: "claude-haiku-4-5",
+      max_tokens: 1024,
+      messages: [{ role: "user", content: prompt }],
+    });
 
-  return extractJson<CourtCaseAnalysis>(getTextContent(message));
+    return extractJson<CourtCaseAnalysis>(getTextContent(message));
+  } catch (error) {
+    if (error instanceof AIProcessingError) throw error;
+    throw new AIProcessingError("Unable to summarize the court case at this time. Please try again later.");
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -354,24 +375,29 @@ Respond with valid JSON matching this exact structure:
 
 The body should be speakable in 2-3 minutes (roughly 300-450 words). Make it powerful and memorable.`;
 
-  const message = await anthropic.messages.create({
-    model: "claude-sonnet-4-5",
-    max_tokens: 2048,
-    messages: [{ role: "user", content: prompt }],
-  });
+  try {
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-5",
+      max_tokens: 2048,
+      messages: [{ role: "user", content: prompt }],
+    });
 
-  const result = extractJson<SpeakingTemplate>(getTextContent(message));
+    const result = extractJson<SpeakingTemplate>(getTextContent(message));
 
-  // Basic runtime validation to guard against malformed model output
-  if (
-    typeof result.opening !== "string" ||
-    typeof result.body !== "string" ||
-    typeof result.closing !== "string" ||
-    !Array.isArray(result.key_facts) ||
-    !Array.isArray(result.suggested_questions)
-  ) {
-    throw new Error("Malformed speaking template returned by AI");
+    // Basic runtime validation to guard against malformed model output
+    if (
+      typeof result.opening !== "string" ||
+      typeof result.body !== "string" ||
+      typeof result.closing !== "string" ||
+      !Array.isArray(result.key_facts) ||
+      !Array.isArray(result.suggested_questions)
+    ) {
+      throw new AIProcessingError("The generated template was incomplete. Please try again later.");
+    }
+
+    return result;
+  } catch (error) {
+    if (error instanceof AIProcessingError) throw error;
+    throw new AIProcessingError("Unable to generate the speaking template at this time. Please try again later.");
   }
-
-  return result;
 }

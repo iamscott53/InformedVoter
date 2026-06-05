@@ -30,15 +30,19 @@ export async function generateMetadata({
 }: {
   params: Promise<{ stateAbbr: string }>;
 }): Promise<Metadata> {
-  const { stateAbbr } = await params;
-  const state = await prisma.state.findUnique({
-    where: { abbreviation: stateAbbr.toUpperCase() },
-  });
-  const stateName = state?.name ?? stateAbbr.toUpperCase();
-  return {
-    title: `${stateName} Voter Dashboard`,
-    description: `Civic information for ${stateName}: senators, representatives, bills, elections, and voter resources.`,
-  };
+  try {
+    const { stateAbbr } = await params;
+    const state = await prisma.state.findUnique({
+      where: { abbreviation: stateAbbr.toUpperCase() },
+    });
+    const stateName = state?.name ?? stateAbbr.toUpperCase();
+    return {
+      title: `${stateName} Voter Dashboard`,
+      description: `Civic information for ${stateName}: senators, representatives, bills, elections, and voter resources.`,
+    };
+  } catch {
+    return { title: "State Voter Dashboard — InformedVoter" };
+  }
 }
 
 // ─────────────────────────────────────────────

@@ -3,6 +3,8 @@
 // Docs: https://support.granicus.com/s/article/Legistar-Web-API
 // ─────────────────────────────────────────────
 
+import { ValidationError, ExternalAPIError } from "@/lib/errors";
+
 const LEGISTAR_BASE = "https://webapi.legistar.com/v1";
 
 // Alphanumeric, hyphen, and underscore only — prevents path traversal and SSRF.
@@ -63,7 +65,7 @@ interface LegistarMatter {
 
 function validateClientId(client: string): void {
   if (!CLIENT_ID_REGEX.test(client)) {
-    throw new Error("Invalid Legistar client identifier");
+    throw new ValidationError("Invalid client identifier");
   }
 }
 
@@ -106,7 +108,9 @@ export async function fetchLegistarEvents(
   });
 
   if (!res.ok) {
-    throw new Error(`Legistar API error: ${res.status} ${res.statusText}`);
+    throw new ExternalAPIError("Unable to fetch meeting data. Please try again later.", {
+      context: { status: res.status, statusText: res.statusText },
+    });
   }
 
   return res.json() as Promise<LegistarEvent[]>;
@@ -127,7 +131,9 @@ export async function fetchLegistarEventItems(
   });
 
   if (!res.ok) {
-    throw new Error(`Legistar API error: ${res.status} ${res.statusText}`);
+    throw new ExternalAPIError("Unable to fetch agenda items. Please try again later.", {
+      context: { status: res.status, statusText: res.statusText },
+    });
   }
 
   return res.json() as Promise<LegistarMatter[]>;

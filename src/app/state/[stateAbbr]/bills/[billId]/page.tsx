@@ -54,10 +54,14 @@ export async function generateMetadata({
 }: {
   params: Promise<{ stateAbbr: string; billId: string }>;
 }): Promise<Metadata> {
-  const { billId } = await params;
-  const bill = await prisma.bill.findUnique({ where: { id: parseInt(billId, 10) } });
-  if (!bill) return { title: "Bill Not Found" };
-  return { title: `${bill.externalId} — ${bill.title}` };
+  try {
+    const { billId } = await params;
+    const bill = await prisma.bill.findUnique({ where: { id: parseInt(billId, 10) } });
+    if (!bill) return { title: "Bill Not Found" };
+    return { title: `${bill.externalId} — ${bill.title}` };
+  } catch {
+    return { title: "Bill — InformedVoter" };
+  }
 }
 
 // ─────────────────────────────────────────────

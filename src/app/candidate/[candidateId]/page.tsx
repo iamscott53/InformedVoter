@@ -30,15 +30,19 @@ export async function generateMetadata({
 }: {
   params: Promise<{ candidateId: string }>;
 }): Promise<Metadata> {
-  const { candidateId } = await params;
-  const idNum = parseInt(candidateId, 10);
-  if (isNaN(idNum)) return { title: "Candidate Not Found" };
-  const candidate = await prisma.candidate.findUnique({
-    where: { id: idNum },
-    select: { name: true, officeType: true, district: true },
-  });
-  if (!candidate) return { title: "Candidate Not Found" };
-  return { title: `${candidate.name} — ${officeLabel(candidate.officeType as OfficeType, candidate.district)}` };
+  try {
+    const { candidateId } = await params;
+    const idNum = parseInt(candidateId, 10);
+    if (isNaN(idNum)) return { title: "Candidate Not Found" };
+    const candidate = await prisma.candidate.findUnique({
+      where: { id: idNum },
+      select: { name: true, officeType: true, district: true },
+    });
+    if (!candidate) return { title: "Candidate Not Found" };
+    return { title: `${candidate.name} — ${officeLabel(candidate.officeType as OfficeType, candidate.district)}` };
+  } catch {
+    return { title: "Candidate — InformedVoter" };
+  }
 }
 
 // ─────────────────────────────────────────────
