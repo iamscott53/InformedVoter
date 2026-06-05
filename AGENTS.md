@@ -238,6 +238,7 @@ Runs on **all** `/api/*` routes:
    - `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Strict-Transport-Security` (with `preload`), `Permissions-Policy`
 4. **Input Sanitization** — `sanitize-html` for rendering external HTML. Allowed tags are restricted to safe markup in `src/lib/sanitize.ts`. Replaced `isomorphic-dompurify` (which crashed in Vercel serverless due to `jsdom` → `parse5@8` ESM-only dependency).
 5. **Supabase RLS** — Row Level Security policies on all tables. Public read access for civic data; default-deny for PII tables.
+6. **Error Sanitization** — All API routes wrapped with `withErrorHandler` / `withCronErrorHandler` (`src/lib/api-error-handler.ts`). Raw errors, stack traces, subsystem names ("Prisma", "Redis", "Claude"), and internal codes (P2002) are NEVER exposed to clients. Typed error hierarchy in `src/lib/errors/` with `AppError` base + 8 domain subclasses.
 
 ---
 
@@ -288,9 +289,20 @@ Sync results are logged to the `DataSyncLog` table.
 
 ## Testing
 
-**There is currently no automated test suite.**  
-The project has no Jest, Vitest, Playwright, or Cypress configuration.  
-If you add tests, place the config at the project root and update this section.
+### Automated Tests (Vitest)
+
+The project uses **Vitest** for unit testing. Tests live in `src/lib/__tests__/`.
+
+| Command | Purpose |
+|---------|---------|
+| `npm test` | Run tests once |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run test:coverage` | Run tests with coverage report |
+
+**Current test coverage:**
+- `src/lib/__tests__/errors.test.ts` — AppError base class + 8 subclasses, toJSON(), toLogObject()
+- `src/lib/__tests__/api-error-handler.test.ts` — withErrorHandler, withCronErrorHandler, error mapping (Prisma, Anthropic, network, generic)
+- `src/lib/__tests__/error-logger.test.ts` — structured logging, PII awareness, logUnexpected
 
 ### Manual Testing
 See `documentation/10_TESTING.md` for a comprehensive manual testing checklist covering core pages, API endpoints, cron jobs, and interactive features.
