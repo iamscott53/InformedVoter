@@ -9,7 +9,7 @@
 import { prisma } from "@/lib/db";
 import { verifyCronSecret } from "@/lib/auth";
 import { Chamber, BillStatus } from "@prisma/client";
-import { withCronErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
+import { withCronErrorHandler, ValidationError, NotFoundError, ExternalAPIError } from "@/lib/api-error-handler";
 
 const CONGRESS_API_BASE = "https://api.congress.gov/v3";
 const CURRENT_CONGRESS = 119;
@@ -134,12 +134,15 @@ async function congressFetch<T>(url: string): Promise<T> {
   });
 
   if (res.status === 429) {
-    throw new Error("Congress.gov rate limit exceeded (429). Try again later.");
+    throw new ExternalAPIError("Rate limit exceeded. Please try again later.", {
+      context: { status: res.status },
+    });
   }
   if (!res.ok) {
-    throw new Error(
-      `Congress.gov API error: ${res.status} ${res.statusText} — ${url}`
-    );
+    // NEVER include the raw URL in error messages — it contains the API key
+    throw new ExternalAPIError("Unable to fetch bill data. Please try again later.", {
+      context: { status: res.status, statusText: res.statusText },
+    });
   }
 
   return res.json() as Promise<T>;

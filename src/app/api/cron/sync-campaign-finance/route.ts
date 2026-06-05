@@ -10,7 +10,7 @@
 import { prisma } from "@/lib/db";
 import { verifyCronSecret } from "@/lib/auth";
 import { OfficeType, ContributionSizeRange, DonorType, ExpenditureCategory } from "@prisma/client";
-import { withCronErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
+import { withCronErrorHandler, ValidationError, NotFoundError, ExternalAPIError } from "@/lib/api-error-handler";
 
 const FEC_API_BASE = "https://api.open.fec.gov/v1";
 
@@ -157,12 +157,15 @@ async function fecFetch<T>(url: string): Promise<T> {
   });
 
   if (res.status === 429) {
-    throw new Error("OpenFEC rate limit exceeded (429). Try again later.");
+    throw new ExternalAPIError("Rate limit exceeded. Please try again later.", {
+      context: { status: res.status },
+    });
   }
   if (!res.ok) {
-    throw new Error(
-      `OpenFEC API error: ${res.status} ${res.statusText} — ${url}`
-    );
+    // NEVER include the raw URL in error messages — it contains the API key
+    throw new ExternalAPIError("Unable to fetch campaign finance data. Please try again later.", {
+      context: { status: res.status, statusText: res.statusText },
+    });
   }
 
   return res.json() as Promise<T>;

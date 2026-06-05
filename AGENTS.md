@@ -211,7 +211,7 @@ Runs on **all** `/api/*` routes:
 | Route Prefix | Rate Limit | Auth |
 |--------------|-----------|------|
 | `/api/ai/*` | 300 req / 60s | Bearer token via `CRON_SECRET` (timing-safe compare) |
-| `/api/cron/*` | 300 req / 60s | `verifyCronSecret(request)` — Bearer header, `?secret=` query param, OR Vercel Cron Jobs (User-Agent: Vercelbot) |
+| `/api/cron/*` | 300 req / 60s | Middleware: `?secret=` query param OR Vercel Cron Jobs (`User-Agent: Vercelbot`). Route handler: `verifyCronSecret()` (Bearer header). Defense-in-depth. |
 | `/api/subscribe` (POST) | 5 req / 60s | None |
 | All other `/api/*` | 60 req / 60s | None |
 
@@ -225,14 +225,16 @@ Runs on **all** `/api/*` routes:
 - On-demand AI endpoints are under `src/app/api/ai/<action>/route.ts`.
 
 ### Health Check
-`GET /api/health` returns `{ status: "healthy" | "degraded", checks: { app, database }, timestamp }`.
+`GET /api/health` returns `{ status: "ok" | "degraded" }` with HTTP 200 (healthy) or 503 (database down).
 
 ---
 
 ## Security Model
 
 1. **Rate Limiting** — Redis-backed, per-IP, tiered limits (see Middleware above).
-2. **Cron Authentication** — Bearer token compared with constant-time `timingSafeCompare` to prevent timing attacks. Node.js `crypto.timingSafeEqual` is used in `src/lib/auth.ts`.
+2. **Cron Authentication** — Defense-in-depth with two layers:
+   - **Middleware** (`src/middleware.ts`): Inline `timingSafeCompare` (Edge Runtime compatible). AI routes require `Authorization: Bearer <CRON_SECRET>`. Cron routes allow `User-Agent: Vercelbot` OR validate `?secret=<CRON_SECRET>`.
+   - **Route handlers** (`src/lib/auth.ts`): `verifyCronSecret()` uses Node.js `crypto.timingSafeEqual` for Bearer header comparison. Performs dummy comparison on length mismatch to prevent length leakage.
 3. **Security Headers** — Set in `next.config.mjs`:
    - `Content-Security-Policy` (strict, with `unsafe-inline` for scripts/styles)
    - `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Strict-Transport-Security` (with `preload`), `Permissions-Policy`
@@ -345,7 +347,7 @@ VPS/Docker files have been moved to `.deprecated/` for reference. The project no
 - **Do not assume a test runner exists.** Verify before writing tests.
 - **Prisma client reuse:** Use the exported `prisma` from `@/lib/db`. Do not instantiate `new PrismaClient()` in random files — it leaks connections in dev.
 - **Redis fallback:** Rate limiting silently allows all traffic when Redis is down. This is intentional for local dev, but confirm Redis is wired up in production.
-- **Cron auth:** All `/api/cron/*` routes enforce `verifyCronSecret(request)`, which checks `Authorization: Bearer <CRON_SECRET>` first, then falls back to `?secret=<CRON_SECRET>`, then allows Vercel Cron Jobs via `User-Agent: Vercelbot`. The middleware also validates `?secret=` when present and blocks manual triggers in production. Local dev can use `ALLOW_MANUAL_CRON=true` + `?manual=true`.
+- **Cron auth (defense-in-depth):** Middleware checks `?secret=` or `User-Agent: Vercelbot` for cron routes. Route handlers additionally enforce `verifyCronSecret()` (Bearer header). Both use constant-time comparison. Manual triggers blocked in production. Local dev can use `ALLOW_MANUAL_CRON=true` + `?manual=true`.
 - **Distributed locks:** AI analysis and digest cron jobs use Redis `SET NX EX` locks to prevent duplicate work and duplicate emails.
 - **External API keys:** Many data-sync features fail gracefully when API keys are missing. Check for key presence before making expensive calls.
 - **Local meeting data is fragmented.** There is no unified national API for city council meetings. Coverage requires building adapters for multiple platforms (Legistar, CivicPlus, etc.).

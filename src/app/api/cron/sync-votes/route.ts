@@ -105,7 +105,9 @@ async function fetchHouseVoteList(): Promise<HouseVoteListItem[]> {
 
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) {
-    throw new Error(`Congress.gov API error: ${res.status} ${res.statusText}`);
+    throw new ExternalAPIError("Unable to fetch vote data. Please try again later.", {
+      context: { status: res.status, statusText: res.statusText },
+    });
   }
   const data = (await res.json()) as HouseVoteListResponse;
   return data.houseRollCallVotes ?? [];
@@ -158,7 +160,7 @@ async function fetchMemberVotesFromXml(xmlUrl: string): Promise<MemberVote[]> {
 // ─────────────────────────────────────────────
 
 import { verifyCronSecret } from "@/lib/auth";
-import { withCronErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
+import { withCronErrorHandler, ValidationError, NotFoundError, ExternalAPIError } from "@/lib/api-error-handler";
 
 export const GET = withCronErrorHandler(async (request: Request) => {
   if (!verifyCronSecret(request)) {
