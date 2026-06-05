@@ -42,7 +42,6 @@ All pages live under `src/app/` and use the Next.js App Router file convention.
 | `/state/[stateAbbr]/bills/[billId]` | `state/[stateAbbr]/bills/[billId]/page.tsx` | Bill detail: AI summary, riders, votes, timeline | Server |
 | `/state/[stateAbbr]/elections` | `state/[stateAbbr]/elections/page.tsx` | State elections (days-until counter) | Server (force-dynamic) |
 | `/state/[stateAbbr]/voter-info` | `state/[stateAbbr]/voter-info/page.tsx` | State voter info (deadlines, ID requirements, early voting) | Server (force-dynamic) |
-| `/state/[stateAbbr]/state-legislature` | `state/[stateAbbr]/state-legislature/page.tsx` | State legislature hub | Server (force-dynamic) |
 
 ### Special Files
 

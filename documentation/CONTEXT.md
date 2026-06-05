@@ -109,7 +109,6 @@ All use `force-dynamic` for real 404s on invalid states.
 - `/state/[stateAbbr]/bills/[billId]` — Bill detail with `BillDetailTabs` (Overview, Riders, Votes, Full Text)
 - `/state/[stateAbbr]/elections` — Elections with days-until counter
 - `/state/[stateAbbr]/voter-info` — Registration deadlines, ID requirements, early voting
-- `/state/[stateAbbr]/state-legislature` — State legislature hub
 
 ### Candidates & Comparison
 - `/candidate/[candidateId]` — Profile with `CandidateTabs` (Policy, Voting Record, Finance, Contact)

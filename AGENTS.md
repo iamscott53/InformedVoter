@@ -66,7 +66,6 @@ src/
       bills/[billId]/page.tsx
       elections/page.tsx
       voter-info/page.tsx
-      state-legislature/page.tsx
     judicial/            # SCOTUS dashboard, cases, justices
       page.tsx
       cases/[...slug]/page.tsx

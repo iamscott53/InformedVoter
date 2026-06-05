@@ -53,7 +53,6 @@ All state pages use `force-dynamic` to emit real 404s for invalid state abbrevia
 | State Bills | `/state/[stateAbbr]/bills` | URL-driven filter bar (search, chamber, status, subject), pagination |
 | State Elections | `/state/[stateAbbr]/elections` | Days-until counter, election type labels |
 | Voter Info | `/state/[stateAbbr]/voter-info` | Registration deadlines, polling hours, ID requirements, early voting, absentee ballots |
-| State Legislature | `/state/[stateAbbr]/state-legislature` | State legislative hub |
 
 ### Local Government
 
