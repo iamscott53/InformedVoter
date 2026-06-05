@@ -86,21 +86,21 @@ PASS|/api/agencies|API responds correctly|
 PASS|/api/search?q=tax&limit=1|API responds correctly|
 PASS|/api/polling-places?address=1600+Pennsylvania+Avenue+NW+Washington+DC|API responds correctly|
 PASS|/api/district-lookup?address=1600+Pennsylvania+Avenue+NW+Washington+DC|API responds correctly|
-FAIL|/api/pac-recipients?limit=1|Status 400|{"error":"committeeIds parameter is required (comma-separated FEC committee IDs)"}
+PASS|/api/pac-recipients?limit=1|API responds correctly|
 PASS|/api/health|API responds correctly|
-FAIL|/judicial/justices/ketanji_brown_jackson|Status 500|
+PASS|/judicial/justices/ketanji_brown_jackson|Status 200|
 PASS|/candidate/1175|Status 200|
 PASS|/state/VA/bills/119-hr-9027|Status 200|
 PASS|/api/local/municipality?city=Chicago&state=IL|Status 200|
 PASS|/api/local/meetings?municipalityId=1|Status 200|
 WARN|/api/local/meeting/1|Status 404|
 FAIL|/api/local/template?agendaItem=Budget&tone=professional|Status 405|
-WARN|/local/city/1|Status 200|
+WARN|/local/city/1|Status 404|
 WARN|/local/meeting/1|Status 200|
 PASS|/api/subscribe (invalid email)|Correctly rejected with 400|
 PASS|/api/subscribe (invalid state)|Correctly rejected with 400|
 PASS|/api/subscribe (valid subscription)|Correctly rejected with 400|
-PASS|/api/unsubscribe?token=...|GET status 200|
+PASS|/api/unsubscribe?token=...|GET status 400|
 PASS|/api/local/meetings/submit (empty)|Status 400|
 PASS|/api/cron/sync-members|Correctly requires auth (401/403)|
 PASS|/api/cron/sync-bills|Correctly requires auth (401/403)|
@@ -114,15 +114,13 @@ PASS|Security Header: x-content-type-options|nosniff|
 PASS|Security Header: referrer-policy|strict-origin-when-cross-origin|
 PASS|Security Header: strict-transport-security|max-age=31536000; includeSubDomains; preload|
 WARN|Security|Server header leaks info|Vercel
-PASS|/_next/static/chunks/081g0drr65jrb.css|Link OK|
+PASS|/_next/static/chunks/0_bld9dis4-9~.css|Link OK|
 PASS|/_next/static/chunks/05tsy9pxtuyv0.js|Link OK|
 PASS|/icon.svg|Link OK|
 PASS|/|Link OK|
 PASS|/pac-recipients|Link OK|
 PASS|/local|Link OK|
 PASS|/about|Link OK|
-PASS|/privacy|Link OK|
-PASS|/contact|Link OK|
 PASS|/polling-places|Link OK|
 PASS|/agencies|Link OK|
 PASS|/agencies/dod|Link OK|
@@ -133,9 +131,11 @@ PASS|/agencies/ed|Link OK|
 PASS|/agencies/dhs|Link OK|
 PASS|/agencies/doj|Link OK|
 PASS|/agencies/dot|Link OK|
-PASS|/|TTFB 50ms|
+PASS|/privacy|Link OK|
+PASS|/contact|Link OK|
+PASS|/|TTFB 54ms|
 PASS|/about|TTFB 50ms|
-PASS|/judicial|TTFB 52ms|
-PASS|/state/VA|TTFB 151ms|
-PASS|/api/health|TTFB 111ms|
-PASS|/api/scotus/justices?limit=1|TTFB 128ms|
+PASS|/judicial|TTFB 57ms|
+PASS|/state/VA|TTFB 178ms|
+PASS|/api/health|TTFB 124ms|
+PASS|/api/scotus/justices?limit=1|TTFB 119ms|

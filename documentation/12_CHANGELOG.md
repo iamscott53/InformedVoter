@@ -58,13 +58,24 @@
 - **SCOTUS detail pages 500 error** — Replaced `isomorphic-dompurify` with `sanitize-html` (pure JS, no DOM). Justice and case detail pages now load correctly.
 - **Documentation sync** — Removed non-existent `state-legislature` route from AGENTS.md and 4 documentation files.
 - **Security audit deployed** — All 18 security hardening measures now active in production (timing-safe auth, prompt injection defense, rate limiter atomicity, SSRF hardening, XSS/tabnabbing protections, info disclosure minimization, input validation).
-- **UAT completed** — Full acceptance testing against production. 190+ cases, 175 passes. Report saved to `UAT_REPORT.md`.
+- **UAT completed** — Full acceptance testing against production. 190+ cases, 177 passes. Report saved to `UAT_REPORT.md`.
+- **3 UAT issues fixed:**
+  - `/api/pac-recipients` now supports list-all mode (no `committeeIds` required)
+  - `/local/city/[id]` and `/state/[stateAbbr]` now return proper 404 for invalid IDs
+  - `/api/unsubscribe` returns 400 for invalid tokens (was 200)
 
 ### Changed
 - `src/lib/sanitize.ts` — Now uses `sanitize-html` instead of `isomorphic-dompurify`
 - `package.json` — Removed `isomorphic-dompurify`, added `sanitize-html` + `@types/sanitize-html`
 - `.env.example` — Updated with correct pooler username format (`postgres.REF`) and `?pgbouncer=true`
 - `.creds/creds.md` — Fixed pooler endpoint to `aws-1-us-east-1`
+- `src/app/api/pac-recipients/route.ts` — `committeeIds` now optional; discover mode caps at 50 committees
+- `src/app/api/unsubscribe/route.ts` — `htmlPage()` accepts status param; invalid tokens return 400
+- `src/app/local/city/[id]/page.tsx` — `notFound()` called in `generateMetadata` for missing cities
+
+### Removed
+- `src/app/loading.tsx` — Root loading spinner (Next.js Suspense boundary prevented 404 status codes)
+- `src/app/state/[stateAbbr]/loading.tsx` — State dashboard skeleton (same reason)
 
 ### Added
 - `UAT_REPORT.md` — Comprehensive UAT report with remediation plan

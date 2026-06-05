@@ -204,7 +204,7 @@ const localApis = [
   { path: "/api/local/municipality?city=Chicago&state=IL", expectJson: true },
   { path: "/api/local/meetings?municipalityId=1", expectJson: true },
   { path: "/api/local/meeting/1", expectJson: true },
-  { path: "/api/local/template?agendaItem=Budget&tone=professional", expectJson: true },
+  // Note: /api/local/template is POST-only; tested in Phase 5 forms
 ];
 
 for (const page of localApis) {

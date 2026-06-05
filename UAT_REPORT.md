@@ -10,12 +10,12 @@
 
 | Category | Count |
 |----------|-------|
-| ✅ Passing | 175 |
-| 🔧 Fixed During UAT | 2 |
-| ⚠️ Warnings / Low Priority | 5 |
-| ❌ Active Issues Requiring Action | 3 |
+| ✅ Passing | 177 |
+| 🔧 Fixed During UAT | 5 |
+| ⚠️ Warnings / Low Priority | 4 |
+| ❌ Active Issues Requiring Action | 0 |
 
-**Overall Status:** **Production-ready with minor issues.** The site is stable, secure, and performant. Database connectivity is restored, all core user flows work, and security hardening from the recent audit is active.
+**Overall Status:** **Production-ready.** The site is stable, secure, and performant. All UAT issues are resolved. Database connectivity is restored, all core user flows work, and security hardening from the recent audit is active.
 
 **Critical Fix Applied:** `isomorphic-dompurify` was causing 500 errors on all SCOTUS justice and case detail pages. Replaced with `sanitize-html` (pure-JS, no DOM dependency). Judicial pages now load correctly.
 
@@ -73,32 +73,27 @@
 
 ---
 
-### 3.2 🟡 Active Issues Requiring Action
+### 3.2 ✅ Issues Fixed During This Session
 
 #### AI-1: `/api/pac-recipients` Requires `committeeIds` — No List-All Support
 - **Route:** `/api/pac-recipients`
-- **Symptom:** `GET /api/pac-recipients?limit=1` returns 400 `"committeeIds parameter is required"`. The only way to discover PACs is via the pre-rendered static pages (`/pac-recipients/aipac`, etc.) or by already knowing committee IDs.
-- **Root Cause:** API is designed for bulk finance lookups by specific committee IDs, not for discovery.
-- **Impact:** MEDIUM — Users cannot browse/discover PACs via API. The static pages work, but the API is not self-discoverable.
-- **Remediation Options:**
-  1. **Add list-all endpoint:** Support `GET /api/pac-recipients?limit=N` without `committeeIds` to return all committees from the `Committee` table.
-  2. **Document the API behavior:** Add OpenAPI-style documentation explaining that `committeeIds` is required.
-  3. **Add a `/api/pac-recipients/list` discovery endpoint.**
-- **Recommended:** Option 1 — modify the existing route to return all committees when `committeeIds` is omitted, capped at 50 results.
+- **Symptom:** `GET /api/pac-recipients?limit=1` returned 400 `"committeeIds parameter is required"`.
+- **Fix:** Made `committeeIds` optional. When omitted, the API discovers all committees (capped at 50) and returns recipients. Chamber/party/state filters still apply.
+- **Status:** ✅ Fixed and verified. `GET /api/pac-recipients?limit=2` returns 200 with empty results (no PAC data in DB yet).
 
 #### AI-2: Missing City Returns 200 Instead of 404
 - **Route:** `/local/city/[id]`
-- **Symptom:** `GET /local/city/1` (non-existent city) returns HTTP 200 with `<title>City Not Found | InformedVoter</title>` instead of HTTP 404.
-- **Root Cause:** The page component correctly calls `notFound()`, but `generateMetadata` returns `{ title: "City Not Found" }` without throwing. In Next.js App Router, when `generateMetadata` returns successfully, the framework may cache or process the page before `notFound()` propagates the 404 status in some edge cases.
-- **Impact:** LOW — UX is fine (user sees "City Not Found"), but SEO crawlers will index missing cities as valid pages. Analytics will show 200s for broken links.
-- **Remediation:** Move the `notFound()` call into `generateMetadata` as well, or use a `try/catch` error boundary that explicitly sets status 404. Alternatively, add `export const dynamic = "force-dynamic"` to prevent caching of the not-found response.
+- **Symptom:** Non-existent cities returned HTTP 200 instead of 404.
+- **Root Cause:** Next.js `loading.tsx` creates Suspense boundaries that stream responses with 200 early. When `notFound()` is thrown afterward, the UI swaps but the HTTP status cannot be retroactively changed.
+- **Fix:** Removed `src/app/loading.tsx` (root) and `src/app/state/[stateAbbr]/loading.tsx`. `notFound()` now correctly returns 404 for invalid cities AND invalid states.
+- **Impact:** Pages no longer show loading skeletons while data fetches. All functionality remains intact.
+- **Status:** ✅ Fixed and verified. `/local/city/nonexistent-abc123` returns 404. `/state/ZZZ` also returns 404.
 
 #### AI-3: Unsubscribe POST Returns 200 for Invalid Tokens
 - **Route:** `POST /api/unsubscribe`
-- **Symptom:** Submitting an invalid token returns HTTP 200 with an HTML page saying "Invalid Link". While the UX is good, the HTTP status should be 400 (Bad Request) to indicate the operation failed.
-- **Root Cause:** The `htmlPage()` helper always returns `status: 200`.
-- **Impact:** LOW — Affects API consumers and analytics. End users see the correct message.
-- **Remediation:** Update `htmlPage()` to accept an optional `status` parameter (default 200). Return 400 for invalid/missing tokens, 404 for already-deleted subscribers, and 200 only for successful deletion.
+- **Symptom:** Invalid tokens returned HTTP 200.
+- **Fix:** Updated `htmlPage()` to accept an optional `status` parameter. Invalid/missing tokens → 400. Server errors → 500. Successful deletion → 200.
+- **Status:** ✅ Fixed and verified. POST with invalid token returns 400. GET with invalid token returns 400.
 
 ---
 
