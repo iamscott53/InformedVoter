@@ -9,6 +9,7 @@ import { analyzeCandidatePolicy } from "@/lib/ai/claude-client";
 import { verifyCronSecret } from "@/lib/auth";
 import { acquireLock } from "@/lib/rate-limit";
 import { PolicyCategory } from "@/types";
+import { withCronErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
 
 const BATCH_SIZE = 5;
 const STALE_DAYS = 30;
@@ -19,7 +20,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function GET(request: Request) {
+export const GET = withCronErrorHandler(async (request: Request) => {
   if (!verifyCronSecret(request)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -165,4 +166,4 @@ export async function GET(request: Request) {
     console.error("[cron/analyze-candidates] Error:", error);
     return Response.json({ error: "Analysis batch failed" }, { status: 500 });
   }
-}
+}, { route: "GET /api/cron/analyze-candidates", jobName: "analyze-candidates" });

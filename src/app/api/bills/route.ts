@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { Chamber, BillStatus } from "@/types";
+import { withErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
 
 // ─────────────────────────────────────────────
 // GET /api/bills
@@ -15,7 +16,7 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
-export async function GET(request: Request) {
+export const GET = withErrorHandler(async (request: Request) => {
   try {
     const { searchParams } = new URL(request.url);
 
@@ -123,4 +124,4 @@ export async function GET(request: Request) {
     console.error("[bills] Unexpected error:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+}, { route: "GET /api/bills" });

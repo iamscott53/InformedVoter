@@ -162,18 +162,18 @@ function mapUnknownError(
  *   }, { route: 'GET /api/entities' });
  */
 export function withErrorHandler<
-  T extends (request: NextRequest | Request) => Promise<Response> | Response
+  T extends (...args: any[]) => Promise<Response> | Response
 >(
   handlerFn: T,
   options: ErrorHandlerOptions = {}
-): (request: NextRequest | Request) => Promise<Response> {
+): T {
   const routeLabel = options.route ?? "unknown-route";
 
-  return async (request: NextRequest | Request): Promise<Response> => {
+  return (async (...args: Parameters<T>): Promise<Response> => {
     const requestId = randomUUID();
 
     try {
-      const response = await handlerFn(request);
+      const response = await handlerFn(...args);
       return response;
     } catch (error: unknown) {
       const appError = mapUnknownError(error, requestId);
@@ -203,7 +203,7 @@ export function withErrorHandler<
         },
       });
     }
-  };
+  }) as T;
 }
 
 /**
@@ -212,18 +212,18 @@ export function withErrorHandler<
  * but with a body indicating the job failed. Logs full details internally.
  */
 export function withCronErrorHandler<
-  T extends (request: NextRequest | Request) => Promise<Response> | Response
+  T extends (...args: any[]) => Promise<Response> | Response
 >(
   handlerFn: T,
   options: ErrorHandlerOptions & { jobName: string } = { jobName: "unknown" }
-): (request: NextRequest | Request) => Promise<Response> {
+): T {
   const routeLabel = options.route ?? `cron:${options.jobName}`;
 
-  return async (request: NextRequest | Request): Promise<Response> => {
+  return (async (...args: Parameters<T>): Promise<Response> => {
     const requestId = randomUUID();
 
     try {
-      const response = await handlerFn(request);
+      const response = await handlerFn(...args);
       return response;
     } catch (error: unknown) {
       const appError = mapUnknownError(error, requestId);
@@ -262,5 +262,5 @@ export function withCronErrorHandler<
         }
       );
     }
-  };
+  }) as T;
 }

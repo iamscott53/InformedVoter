@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/db";
 import { BASE_URL } from "@/lib/resend";
+// Note: This route returns HTML pages, not JSON, so we don't use withErrorHandler here.
+// Errors are handled internally with friendly HTML error pages.
 
 // ─────────────────────────────────────────────
 // GET /api/unsubscribe?token=xxx  → Confirmation page

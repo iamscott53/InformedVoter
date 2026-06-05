@@ -1,4 +1,5 @@
 import { FEDERAL_AGENCIES } from "@/lib/agencies";
+import { withErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
 
 // ─────────────────────────────────────────────
 // GET /api/agencies
@@ -53,28 +54,23 @@ async function fetchAgencyBudgets(): Promise<Map<string, USASpendingAgency>> {
   }
 }
 
-export async function GET() {
-  try {
-    const budgetMap = await fetchAgencyBudgets();
+export const GET = withErrorHandler(async () => {
+  const budgetMap = await fetchAgencyBudgets();
 
-    const agencies: AgencyWithBudget[] = FEDERAL_AGENCIES.map((agency) => {
-      const budget = budgetMap.get(agency.toptierCode);
-      return {
-        abbreviation: agency.abbreviation,
-        name: agency.name,
-        description: agency.description,
-        url: agency.url,
-        category: agency.category,
-        budgetAuthority: budget?.current_total_budget_authority_amount ?? null,
-        obligated: budget?.obligated_amount ?? null,
-        percentOfFederalBudget:
-          budget?.percentage_of_total_budget_authority ?? null,
-      };
-    });
+  const agencies: AgencyWithBudget[] = FEDERAL_AGENCIES.map((agency) => {
+    const budget = budgetMap.get(agency.toptierCode);
+    return {
+      abbreviation: agency.abbreviation,
+      name: agency.name,
+      description: agency.description,
+      url: agency.url,
+      category: agency.category,
+      budgetAuthority: budget?.current_total_budget_authority_amount ?? null,
+      obligated: budget?.obligated_amount ?? null,
+      percentOfFederalBudget:
+        budget?.percentage_of_total_budget_authority ?? null,
+    };
+  });
 
-    return Response.json({ agencies });
-  } catch (error) {
-    console.error("[agencies] Unexpected error:", error);
-    return Response.json({ error: "Internal server error" }, { status: 500 });
-  }
-}
+  return Response.json({ agencies });
+}, { route: "GET /api/agencies" });

@@ -12,6 +12,7 @@ import { verifyCronSecret } from "@/lib/auth";
 
 import { prisma } from "@/lib/db";
 import { OfficeType } from "@prisma/client";
+import { withCronErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
 
 // Long-running: fetches FEC data for up to 100 candidates with 500ms delays
 // and 3-4 API calls each. Raise the function timeout from the default 10s.
@@ -248,7 +249,7 @@ async function syncCandidatePacContributions(
 // Route handler
 // ─────────────────────────────────────────────
 
-export async function GET(request: Request) {
+export const GET = withCronErrorHandler(async (request: Request) => {
   const { searchParams } = new URL(request.url);
   const isManual = searchParams.get("manual") === "true";
 
@@ -428,4 +429,4 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
-}
+}, { route: "GET /api/cron/sync-pac-contributions", jobName: "sync-pac-contributions" });

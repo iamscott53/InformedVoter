@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { BASE_URL } from "@/lib/resend";
+import { withErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
 
 // ─────────────────────────────────────────────
 // GET /api/subscribe/verify?token=xxx
@@ -38,7 +39,7 @@ function htmlPage(title: string, message: string, cta?: string): Response {
   );
 }
 
-export async function GET(request: Request) {
+export const GET = withErrorHandler(async (request: Request) => {
   try {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get("token")?.trim();
@@ -75,4 +76,4 @@ export async function GET(request: Request) {
     console.error("[verify] Error:", error);
     return htmlPage("Something Went Wrong", "Please try again later.");
   }
-}
+}, { route: "GET /api/subscribe/verify" });

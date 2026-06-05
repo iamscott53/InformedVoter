@@ -732,8 +732,9 @@ const STATE_VOTER_DATA: StateVoterData[] = [
 ];
 
 import { verifyCronSecret } from "@/lib/auth";
+import { withCronErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
 
-export async function GET(request: Request) {
+export const GET = withCronErrorHandler(async (request: Request) => {
   if (!verifyCronSecret(request)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -813,4 +814,4 @@ export async function GET(request: Request) {
     console.error("[cron/sync-voter-info] Error:", error);
     return Response.json({ error: "Sync failed" }, { status: 500 });
   }
-}
+}, { route: "GET /api/cron/sync-voter-info", jobName: "sync-voter-info" });

@@ -9,6 +9,7 @@
 import { prisma } from "@/lib/db";
 import { verifyCronSecret } from "@/lib/auth";
 import { Chamber, BillStatus } from "@prisma/client";
+import { withCronErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
 
 const CONGRESS_API_BASE = "https://api.congress.gov/v3";
 const CURRENT_CONGRESS = 119;
@@ -433,7 +434,7 @@ async function upsertBill(
 // Route handler
 // ─────────────────────────────────────────────
 
-export async function GET(request: Request) {
+export const GET = withCronErrorHandler(async (request: Request) => {
   const { searchParams } = new URL(request.url);
   const isManual = searchParams.get("manual") === "true";
 
@@ -546,4 +547,4 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
-}
+}, { route: "GET /api/cron/sync-bills", jobName: "sync-bills" });

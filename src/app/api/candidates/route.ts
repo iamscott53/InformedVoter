@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { OfficeType } from "@/types";
+import { withErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
 
 // ─────────────────────────────────────────────
 // GET /api/candidates
@@ -9,7 +10,7 @@ import { OfficeType } from "@/types";
 //   party       — party string, case-insensitive partial match (e.g. "Republican")
 // ─────────────────────────────────────────────
 
-export async function GET(request: Request) {
+export const GET = withErrorHandler(async (request: Request) => {
   try {
     const { searchParams } = new URL(request.url);
 
@@ -92,4 +93,4 @@ export async function GET(request: Request) {
     console.error("[candidates] Unexpected error:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+}, { route: "GET /api/candidates" });

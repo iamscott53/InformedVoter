@@ -8,8 +8,9 @@ import { prisma } from "@/lib/db";
 import { analyzeBill, detectRiders } from "@/lib/ai/claude-client";
 import { verifyCronSecret } from "@/lib/auth";
 import { acquireLock } from "@/lib/rate-limit";
+import { withCronErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
 
-export async function GET(request: Request) {
+export const GET = withCronErrorHandler(async (request: Request) => {
   if (!verifyCronSecret(request)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -97,4 +98,4 @@ export async function GET(request: Request) {
     console.error("[cron/analyze-bills] Error:", error);
     return Response.json({ error: "Analysis batch failed" }, { status: 500 });
   }
-}
+}, { route: "GET /api/cron/analyze-bills", jobName: "analyze-bills" });

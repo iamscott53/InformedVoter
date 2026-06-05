@@ -10,6 +10,7 @@
 import { prisma } from "@/lib/db";
 import { verifyCronSecret } from "@/lib/auth";
 import { OfficeType, ContributionSizeRange, DonorType, ExpenditureCategory } from "@prisma/client";
+import { withCronErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
 
 const FEC_API_BASE = "https://api.open.fec.gov/v1";
 
@@ -721,7 +722,7 @@ async function syncCandidateFinance(
 // Route handler
 // ─────────────────────────────────────────────
 
-export async function GET(request: Request) {
+export const GET = withCronErrorHandler(async (request: Request) => {
   const { searchParams } = new URL(request.url);
   const isManual = searchParams.get("manual") === "true";
 
@@ -873,4 +874,4 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
-}
+}, { route: "GET /api/cron/sync-campaign-finance", jobName: "sync-campaign-finance" });

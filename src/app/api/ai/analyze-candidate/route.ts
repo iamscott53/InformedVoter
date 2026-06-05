@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { analyzeCandidatePolicy } from "@/lib/ai/claude-client";
 import { PolicyCategory, VoteChoice } from "@/types";
+import { withErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
 
 // ─────────────────────────────────────────────
 // POST /api/ai/analyze-candidate
@@ -11,13 +12,13 @@ import { PolicyCategory, VoteChoice } from "@/types";
 // returns the result.
 // ─────────────────────────────────────────────
 
-export async function POST(request: Request) {
+export const POST = withErrorHandler(async (request: Request) => {
   try {
     let body: unknown;
     try {
       body = await request.json();
     } catch {
-      return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+      throw new ValidationError("Invalid JSON body");
     }
 
     const { candidateId, category } = body as {
@@ -26,25 +27,16 @@ export async function POST(request: Request) {
     };
 
     if (candidateId === undefined || candidateId === null) {
-      return Response.json(
-        { error: "'candidateId' is required in the request body" },
-        { status: 400 }
-      );
+      throw new ValidationError("'candidateId' is required in the request body");
     }
 
     if (!category) {
-      return Response.json(
-        { error: "'category' is required in the request body" },
-        { status: 400 }
-      );
+      throw new ValidationError("'category' is required in the request body");
     }
 
     const id = Number(candidateId);
     if (!Number.isInteger(id) || id <= 0) {
-      return Response.json(
-        { error: "'candidateId' must be a positive integer" },
-        { status: 400 }
-      );
+      throw new ValidationError("'candidateId' must be a positive integer");
     }
 
     const categoryStr = String(category).toUpperCase();
@@ -73,10 +65,7 @@ export async function POST(request: Request) {
     });
 
     if (!candidate) {
-      return Response.json(
-        { error: "Candidate not found" },
-        { status: 404 }
-      );
+      throw new NotFoundError("Candidate not found");
     }
 
     // Map vote history to the format expected by claude-client
@@ -137,4 +126,4 @@ export async function POST(request: Request) {
     console.error("[ai/analyze-candidate] Unexpected error:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+}, { route: "POST /api/ai/analyze-candidate" });

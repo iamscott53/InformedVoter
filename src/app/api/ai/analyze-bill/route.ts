@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { analyzeBill, detectRiders } from "@/lib/ai/claude-client";
+import { withErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
 
 // ─────────────────────────────────────────────
 // POST /api/ai/analyze-bill
@@ -9,30 +10,24 @@ import { analyzeBill, detectRiders } from "@/lib/ai/claude-client";
 // summary and rider detection, persists the results, and returns them.
 // ─────────────────────────────────────────────
 
-export async function POST(request: Request) {
+export const POST = withErrorHandler(async (request: Request) => {
   try {
     let body: unknown;
     try {
       body = await request.json();
     } catch {
-      return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+      throw new ValidationError("Invalid JSON body");
     }
 
     const { billId } = body as { billId?: unknown };
 
     if (billId === undefined || billId === null) {
-      return Response.json(
-        { error: "'billId' is required in the request body" },
-        { status: 400 }
-      );
+      throw new ValidationError("'billId' is required in the request body");
     }
 
     const id = Number(billId);
     if (!Number.isInteger(id) || id <= 0) {
-      return Response.json(
-        { error: "'billId' must be a positive integer" },
-        { status: 400 }
-      );
+      throw new ValidationError("'billId' must be a positive integer");
     }
 
     // Fetch bill from database
@@ -45,7 +40,7 @@ export async function POST(request: Request) {
     });
 
     if (!bill) {
-      return Response.json({ error: "Bill not found" }, { status: 404 });
+      throw new NotFoundError("Bill not found");
     }
 
     // Build the text to send to Claude.
@@ -110,4 +105,4 @@ export async function POST(request: Request) {
     console.error("[ai/analyze-bill] Unexpected error:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+}, { route: "POST /api/ai/analyze-bill" });

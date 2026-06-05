@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyCronSecret } from "@/lib/auth";
+import { withCronErrorHandler, AuthenticationError } from "@/lib/api-error-handler";
 import {
   fetchLegistarEvents,
   fetchLegistarEventItems,
@@ -15,28 +16,23 @@ import {
  *
  * Authorization: Bearer CRON_SECRET (same as other cron routes)
  */
-export async function GET(request: NextRequest) {
+export const GET = withCronErrorHandler(async (request: NextRequest) => {
   // ── Auth ──
   const manual = request.nextUrl.searchParams.get("manual") === "true";
 
   if (manual) {
     if (process.env.NODE_ENV !== "development") {
-      return NextResponse.json(
-        { error: "Manual trigger is only allowed in development" },
-        { status: 403 }
-      );
+      throw new AuthenticationError("Manual trigger is only allowed in development");
     }
     console.log("[sync-local-meetings] Manual trigger in development mode — skipping auth");
   } else if (!verifyCronSecret(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    throw new AuthenticationError("Unauthorized");
   }
 
   const startTime = Date.now();
   let recordsSynced = 0;
   let recordsFailed = 0;
   const errors: string[] = [];
-
-  try {
     // Find all municipalities with Legistar configured
     const municipalities = await prisma.municipality.findMany({
       where: { legistarClient: { not: null } },
@@ -149,25 +145,4 @@ export async function GET(request: NextRequest) {
       errorCount: errors.length,
       durationMs: Date.now() - startTime,
     });
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    console.error("[sync-local-meetings] fatal error:", msg);
-
-    await prisma.dataSyncLog.create({
-      data: {
-        syncType: "local-meetings",
-        status: "failed",
-        recordsTotal: 0,
-        recordsSynced: 0,
-        recordsFailed: 0,
-        durationMs: Date.now() - startTime,
-        errorMessage: msg.slice(0, 2000),
-      },
-    });
-
-    return NextResponse.json(
-      { error: "Sync failed" },
-      { status: 500 }
-    );
-  }
-}
+  }, { route: "GET /api/cron/sync-local-meetings", jobName: "sync-local-meetings" });

@@ -1,3 +1,4 @@
+import { withErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
 // ─────────────────────────────────────────────
 // GET /api/district-lookup?address=<url-encoded address>
 // Uses the Google Civic Information API representativeInfoByAddress
@@ -33,23 +34,17 @@ interface CivicRepresentativeResponse {
   error?: { code?: number; message?: string };
 }
 
-export async function GET(request: Request) {
+export const GET = withErrorHandler(async (request: Request) => {
   try {
     const { searchParams } = new URL(request.url);
     const address = searchParams.get("address")?.trim();
 
     if (!address) {
-      return Response.json(
-        { error: "Query parameter 'address' is required" },
-        { status: 400 }
-      );
+      throw new ValidationError("Query parameter 'address' is required");
     }
 
     if (address.length > 500) {
-      return Response.json(
-        { error: "Address is too long (max 500 characters)" },
-        { status: 400 }
-      );
+      throw new ValidationError("Address is too long (max 500 characters)");
     }
 
     const apiKey = process.env.GOOGLE_CIVIC_API_KEY;
@@ -135,4 +130,4 @@ export async function GET(request: Request) {
     console.error("[district-lookup] Unexpected error:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+}, { route: "GET /api/district-lookup" });

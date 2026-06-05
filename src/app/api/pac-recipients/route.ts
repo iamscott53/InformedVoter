@@ -7,11 +7,12 @@
 import { prisma } from "@/lib/db";
 import { OfficeType, Prisma } from "@prisma/client";
 import { CURRENT_CYCLE } from "@/lib/fec";
+import { withErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
 
 const VALID_SORT = new Set(["amount", "name", "state"]);
 const VALID_DIR = new Set(["asc", "desc"]);
 
-export async function GET(request: Request) {
+export const GET = withErrorHandler(async (request: Request) => {
   const { searchParams } = new URL(request.url);
 
   // Parse params
@@ -29,10 +30,7 @@ export async function GET(request: Request) {
   if (committeeIdsParam) {
     fecCommitteeIds = committeeIdsParam.split(",").map((s) => s.trim()).filter(Boolean);
     if (fecCommitteeIds.length > 50) {
-      return Response.json(
-        { error: "Too many committee IDs. Maximum is 50." },
-        { status: 400 }
-      );
+      throw new ValidationError("Too many committee IDs. Maximum is 50.");
     }
   }
 
@@ -212,4 +210,4 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
-}
+}, { route: "GET /api/pac-recipients" });

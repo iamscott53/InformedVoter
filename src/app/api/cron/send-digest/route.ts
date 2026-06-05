@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { resend, EMAIL_FROM, BASE_URL } from "@/lib/resend";
 import { verifyCronSecret } from "@/lib/auth";
 import { acquireLock } from "@/lib/rate-limit";
+import { withCronErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
 import {
   buildDigestEmail,
   type DigestBill,
@@ -32,7 +33,7 @@ const STATE_NAMES: Record<string, string> = {
 
 const DEFAULT_LOOKBACK_DAYS = 7;
 
-export async function GET(request: Request) {
+export const GET = withCronErrorHandler(async (request: Request) => {
   if (!verifyCronSecret(request)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -246,4 +247,4 @@ export async function GET(request: Request) {
     console.error("[send-digest] Unexpected error:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+}, { route: "GET /api/cron/send-digest", jobName: "send-digest" });

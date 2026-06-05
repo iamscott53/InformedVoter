@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { verifyCronSecret } from "@/lib/auth";
+import { withCronErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
 
 // ─────────────────────────────────────────────
 // GET /api/cron/sync-scotus
@@ -580,7 +581,7 @@ async function syncFinancialDisclosures(): Promise<{
 // Route handler
 // ─────────────────────────────────────────────
 
-export async function GET(request: Request) {
+export const GET = withCronErrorHandler(async (request: Request) => {
   // Defense-in-depth: verify auth even though middleware should catch it
   if (!verifyCronSecret(request)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -648,4 +649,4 @@ export async function GET(request: Request) {
     console.error("[sync-scotus] Unexpected error:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+}, { route: "GET /api/cron/sync-scotus", jobName: "sync-scotus" });

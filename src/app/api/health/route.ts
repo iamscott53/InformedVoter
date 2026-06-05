@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { withErrorHandler } from "@/lib/api-error-handler";
 
 // ─────────────────────────────────────────────
 // GET /api/health
@@ -7,7 +8,7 @@ import { prisma } from "@/lib/db";
 // Returns minimal info publicly; detailed checks are logged server-side.
 // ─────────────────────────────────────────────
 
-export async function GET() {
+export const GET = withErrorHandler(async () => {
   let dbOk = true;
 
   try {
@@ -23,4 +24,4 @@ export async function GET() {
     { status: dbOk ? "ok" : "degraded" },
     { status }
   );
-}
+}, { route: "GET /api/health" });

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { withErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
 
 // ─────────────────────────────────────────────
 // GET /api/search?q=<term>
@@ -8,23 +9,17 @@ import { prisma } from "@/lib/db";
 
 const MAX_RESULTS_PER_TYPE = 10;
 
-export async function GET(request: Request) {
+export const GET = withErrorHandler(async (request: Request) => {
   try {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q")?.trim();
 
     if (!q || q.length === 0) {
-      return Response.json(
-        { error: "Query parameter 'q' is required" },
-        { status: 400 }
-      );
+      throw new ValidationError("Query parameter 'q' is required");
     }
 
     if (q.length < 2 || q.length > 200) {
-      return Response.json(
-        { error: "Query must be between 2 and 200 characters" },
-        { status: 400 }
-      );
+      throw new ValidationError("Query must be between 2 and 200 characters");
     }
 
     // Run both searches in parallel
@@ -85,4 +80,4 @@ export async function GET(request: Request) {
     console.error("[search] Unexpected error:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+}, { route: "GET /api/search" });

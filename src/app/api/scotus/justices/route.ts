@@ -1,10 +1,11 @@
 import { prisma } from "@/lib/db";
+import { withErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
 
 // ─────────────────────────────────────────────
 // GET /api/scotus/justices?active=true
 // ─────────────────────────────────────────────
 
-export async function GET(request: Request) {
+export const GET = withErrorHandler(async (request: Request) => {
   try {
     const { searchParams } = new URL(request.url);
     const activeParam = searchParams.get("active")?.trim().toLowerCase();
@@ -46,4 +47,4 @@ export async function GET(request: Request) {
     console.error("[scotus/justices] Unexpected error:", error);
     return Response.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+}, { route: "GET /api/scotus/justices" });

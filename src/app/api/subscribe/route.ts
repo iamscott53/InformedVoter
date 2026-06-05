@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { resend, EMAIL_FROM } from "@/lib/resend";
 import { buildVerificationEmail } from "@/lib/email/verification-template";
+import { withErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
 
 // ─────────────────────────────────────────────
 // POST /api/subscribe
@@ -16,31 +17,22 @@ const VALID_STATES = new Set([
   "VA","WA","WV","WI","WY","DC",
 ]);
 
-export async function POST(request: Request) {
+export const POST = withErrorHandler(async (request: Request) => {
   try {
     const body = await request.json();
     const email = (body.email as string)?.trim().toLowerCase();
     const stateAbbr = (body.stateAbbr as string)?.trim().toUpperCase();
 
     if (!email || !EMAIL_RE.test(email)) {
-      return Response.json(
-        { error: "Please enter a valid email address." },
-        { status: 400 }
-      );
+      throw new ValidationError("Please enter a valid email address.");
     }
 
     if (email.length > 254) {
-      return Response.json(
-        { error: "Email address is too long." },
-        { status: 400 }
-      );
+      throw new ValidationError("Email address is too long.");
     }
 
     if (!stateAbbr || !VALID_STATES.has(stateAbbr)) {
-      return Response.json(
-        { error: "Please select a valid US state." },
-        { status: 400 }
-      );
+      throw new ValidationError("Please select a valid US state.");
     }
 
     // Upsert: if already verified, silently succeed (no enumeration leak)
@@ -91,4 +83,4 @@ export async function POST(request: Request) {
     console.error("[subscribe] Error:", error);
     return Response.json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }
-}
+}, { route: "POST /api/subscribe" });

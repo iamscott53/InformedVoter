@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { withErrorHandler, ValidationError, NotFoundError } from "@/lib/api-error-handler";
 
 // ─────────────────────────────────────────────
 // POST /api/subscribe/demographics
@@ -94,16 +95,13 @@ function validateOptional<T>(
   return undefined;
 }
 
-export async function POST(request: Request) {
+export const POST = withErrorHandler(async (request: Request) => {
   try {
     const body = await request.json();
     const profileToken = (body.profileToken as string)?.trim();
 
     if (!profileToken) {
-      return Response.json(
-        { error: "Missing profile token." },
-        { status: 400 }
-      );
+      throw new ValidationError("Missing profile token.");
     }
 
     // Find subscriber by profile token
@@ -113,10 +111,7 @@ export async function POST(request: Request) {
     });
 
     if (!subscriber) {
-      return Response.json(
-        { error: "Invalid profile token." },
-        { status: 404 }
-      );
+      throw new NotFoundError("Invalid profile token.");
     }
 
     // Validate & sanitize all fields
@@ -172,4 +167,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
+}, { route: "POST /api/subscribe/demographics" });
